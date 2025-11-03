@@ -1,0 +1,1211 @@
+==== FILE_START ====
+PATH: README.md
+TITLE: Ansible Collection - jackaltx.solti_ensemble
+FILENAME: README.md
+==== CONTENT_START ====
+# Ansible Collection - jackaltx.solti_ensemble
+
+Documentation for the collection.
+moved to dev branch
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: mysql-ispconf-trick.md
+TITLE: mysql-ispconf-trick
+FILENAME: mysql-ispconf-trick.md
+==== CONTENT_START ====
+Here's an Ansible task to parse and extract the MySQL password from the file:
+
+```yaml
+- name: Extract MySQL root password from ISPConfig config
+  ansible.builtin.shell: grep -oP "\\$clientdb_password\\s*=\\s*'\\K[^']+" /usr/local/ispconfig/server/lib/mysql_clientdb.conf
+  register: mysql_password
+  changed_when: false
+  no_log: true
+
+- name: Set MySQL password as fact
+  ansible.builtin.set_fact:
+    ispconfig_mysql_root_password: "{{ mysql_password.stdout }}"
+    no_log: true
+```
+
+Use this fact in subsequent MySQL tasks:
+
+```yaml
+- name: Create MySQL database
+  community.mysql.mysql_db:
+    name: example_db
+    state: present
+    login_user: root
+    login_password: "{{ ispconfig_mysql_root_password }}"
+```
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: plugins/README.md
+TITLE: Collections Plugins Directory
+FILENAME: README.md
+==== CONTENT_START ====
+# Collections Plugins Directory
+
+This directory can be used to ship various plugins inside an Ansible collection. Each plugin is placed in a folder that
+is named after the type of plugin it is in. It can also include the `module_utils` and `modules` directory that
+would contain module utils and modules respectively.
+
+Here is an example directory of the majority of plugins currently supported by Ansible:
+
+```
+└── plugins
+    ├── action
+    ├── become
+    ├── cache
+    ├── callback
+    ├── cliconf
+    ├── connection
+    ├── filter
+    ├── httpapi
+    ├── inventory
+    ├── lookup
+    ├── module_utils
+    ├── modules
+    ├── netconf
+    ├── shell
+    ├── strategy
+    ├── terminal
+    ├── test
+    └── vars
+```
+
+A full list of plugin types can be found at [Working With Plugins](https://docs.ansible.com/ansible-core/2.16/plugins/plugins.html).
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/gitea/README.md
+TITLE: Gitea Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# Gitea Ansible Role
+
+This role manages the installation and configuration of Gitea, a lightweight, self-hosted Git service.
+
+## Overview
+
+The role handles:
+- Installation of Gitea package or binary
+- Configuration of Gitea service
+- User and database setup
+- SSL configuration
+- Complete lifecycle management (install, configure, remove)
+
+## Requirements
+
+### Platform Support
+- Debian/Ubuntu systems (uses apt for package management)
+- RedHat/Rocky Linux systems (uses dnf for package management)
+- Systemd-based systems
+
+### Prerequisites
+- Systemd
+- Database server (SQLite by default, can be configured for PostgreSQL or MySQL)
+- Proper network connectivity for public access
+
+## Role Variables
+
+### Required Variables
+
+```yaml
+gitea_state: 'present'           # Use 'absent' to remove Gitea
+gitea_db_type: 'sqlite3'         # Database type: 'sqlite3', 'mysql', 'postgres'
+```
+
+### Optional Variables
+
+```yaml
+# Installation control
+gitea_version: '1.21.3'          # Gitea version to install
+gitea_force_reload: false        # Force reinstallation
+
+# Network configuration
+gitea_http_domain: 'localhost'   # Domain name for Gitea
+gitea_http_port: 3000            # HTTP port
+gitea_http_addr: '0.0.0.0'       # Listen address
+gitea_root_url: 'http://localhost:3000/'  # Public root URL
+
+# SSL configuration
+gitea_protocol: 'http'           # 'http' or 'https'
+gitea_cert: ''                   # Path to SSL certificate
+gitea_key: ''                    # Path to SSL private key
+
+# User configuration
+gitea_user: 'git'                # System user for Gitea
+gitea_group: 'git'               # System group for Gitea
+gitea_admin_user: 'gitea_admin'  # Admin username
+gitea_admin_password: ''         # Admin password (auto-generated if empty)
+gitea_admin_email: 'admin@example.com'  # Admin email
+
+# Registration configuration
+gitea_disable_registration: true   # Disable user registration
+gitea_require_signin: true         # Require signin to view repositories
+
+# Database configuration
+gitea_db_host: 'localhost'       # Database host (for MySQL/PostgreSQL)
+gitea_db_name: 'gitea'           # Database name
+gitea_db_user: 'gitea'           # Database user
+gitea_db_password: ''            # Database password (auto-generated if empty)
+
+# Path configuration
+gitea_home_path: '/var/lib/gitea'  # Gitea home directory
+gitea_data_path: '/var/lib/gitea/data'  # Gitea data directory
+gitea_config_path: '/etc/gitea'   # Configuration directory
+gitea_log_path: '/var/log/gitea'  # Log directory
+
+# Cleanup options
+gitea_delete_config: false        # Remove config files on uninstall
+gitea_delete_data: false          # Remove data directory on uninstall
+```
+
+## Dependencies
+
+This role has no direct dependencies on other Ansible roles.
+
+## Example Playbook
+
+Basic usage:
+
+```yaml
+- hosts: git_servers
+  roles:
+    - role: gitea
+      vars:
+        gitea_state: 'present'
+        gitea_http_domain: 'git.example.com'
+        gitea_root_url: 'https://git.example.com/'
+        gitea_http_port: 3000
+        gitea_disable_registration: true
+```
+
+Advanced configuration with MySQL:
+
+```yaml
+- hosts: git_servers
+  roles:
+    - role: gitea
+      vars:
+        gitea_state: 'present'
+        gitea_http_domain: 'git.example.com'
+        gitea_root_url: 'https://git.example.com/'
+        gitea_protocol: 'http'  # Using HTTP as we'll have a reverse proxy
+        gitea_http_port: 3000
+        gitea_db_type: 'mysql'
+        gitea_db_host: 'db.example.com'
+        gitea_db_name: 'gitea_db'
+        gitea_db_user: 'gitea_user'
+        gitea_db_password: 'secure_password'
+        gitea_disable_registration: true
+        gitea_require_signin: true
+```
+
+Removal configuration:
+
+```yaml
+- hosts: git_servers
+  roles:
+    - role: gitea
+      vars:
+        gitea_state: 'absent'
+        gitea_delete_config: true
+        gitea_delete_data: false  # Keep data for backup
+```
+
+## File Structure
+
+```
+gitea/
+├── defaults/
+│   └── main.yml              # Default variables
+├── handlers/
+│   └── main.yml             # Service handlers
+├── tasks/
+│   ├── configure.yml       # Configuration tasks
+│   ├── install.yml         # Installation tasks
+│   ├── main.yml           # Main tasks
+│   └── remove.yml         # Removal tasks
+├── templates/
+│   ├── app.ini.j2         # Main config template
+│   └── gitea.service.j2   # Systemd service template
+└── vars/
+    ├── Debian.yml         # Debian-specific variables
+    └── RedHat.yml         # RedHat-specific variables
+```
+
+## Handlers
+
+The role includes the following handlers:
+- `restart gitea`: Restarts the Gitea service
+- `reload systemd`: Reloads systemd daemon
+
+## Security Considerations
+
+- SSL configuration is optional but recommended for production use
+- User registration is disabled by default
+- Admin password is generated randomly if not specified
+- Database password is generated randomly if not specified
+- Proper file permissions are applied to sensitive files
+
+## License
+
+MIT
+
+## Author Information
+
+Created by Your Name.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## Notes
+
+- The role automatically handles service restarts when configuration changes
+- Supports both SQLite (default) and external databases (MySQL, PostgreSQL)
+- Provides flexible SSL configuration options
+- Includes comprehensive user management capabilities
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/mariadb/readme.md
+TITLE: MariaDB Role
+FILENAME: readme.md
+==== CONTENT_START ====
+# MariaDB Role
+
+An Ansible role for deploying and managing MariaDB database servers with a focus on security and maintainability.
+
+## Features
+
+- Automated MariaDB installation and configuration
+- Security-focused installation with optional hardening
+- Support for database initialization scripts
+- Built-in backup functionality
+- Support for both Debian 12 and Rocky Linux 9
+- Easy removal/cleanup capability
+
+## Prerequisites
+
+- Target system running Debian 12 or Rocky Linux 9
+- Ansible 2.10 or higher
+- Sufficient disk space for database storage
+- Access to official package repositories
+
+## Role Variables
+
+### Required Variables
+
+```yaml
+# Root password for MariaDB
+mariadb_mysql_root_password: ""
+```
+
+### Optional Variables
+
+```yaml
+# State management
+mariadb_state: present  # Use 'absent' to remove
+mariadb_remove_data: false  # Set to true to remove data directories during removal
+
+# Security options
+mariadb_security: true  # Enable security hardening
+mariadb_remove_anonymous: yes  # Remove anonymous users
+mariadb_remove_test_db: yes   # Remove test database
+
+# Configuration options
+mariadb_bind_address: "127.0.0.1"  # Network binding
+mariadb_port: 3306               # Port to listen on
+```
+
+## Dependencies
+
+- None
+
+## Example Playbook
+
+### Basic Installation
+
+```yaml
+---
+- name: Install MariaDB
+  hosts: database_servers
+  become: true
+  vars:
+    mariadb_mysql_root_password: "secure_password_here"
+    mariadb_state: present
+    mariadb_security: true
+  roles:
+    - mariadb
+```
+
+### Complete Removal
+
+```yaml
+---
+- name: Remove MariaDB
+  hosts: database_servers
+  become: true
+  vars:
+    mariadb_state: absent
+    mariadb_remove_data: true
+    mariadb_mysql_root_password: "your_root_password"
+  roles:
+    - mariadb
+```
+
+## Role Tags
+
+- `packages`: Package installation tasks
+- `config`: Configuration tasks
+- `security`: Security-related tasks
+- `service`: Service management tasks
+- `backup`: Backup related tasks
+- `cleanup`: Cleanup tasks when removing services
+
+## Security Features
+
+When `mariadb_security: true`:
+1. Removes anonymous users
+2. Removes test database
+3. Disables remote root login
+4. Sets up root password
+5. Configures secure defaults
+
+## What Gets Removed
+
+When running with `mariadb_state: absent`:
+
+1. **Services Stopped**
+   - mariadb service stopped and disabled
+
+2. **Packages Removed**
+   - mariadb-server and related packages
+   - Package cleanup on Debian systems
+
+3. **With `mariadb_remove_data: true`**
+   - Database directory (/var/lib/mysql)
+   - Configuration files
+   - Log files
+
+## Backup and Restore
+
+The role supports basic backup functionality:
+
+1. **Creating Backups**
+   - Automated backup during configuration changes
+   - Backup stored in specified backup directory
+
+2. **Backup Location**
+   - Default: /var/backup/mysql
+   - Configurable through variables
+
+## Post-Installation Steps
+
+After installation:
+
+1. Verify MariaDB is running:
+   ```bash
+   systemctl status mariadb
+   ```
+
+2. Test database connection:
+   ```bash
+   mysql -u root -p
+   ```
+
+3. Check secure installation:
+   ```bash
+   mysql -u root -p -e "SELECT user,host FROM mysql.user;"
+   ```
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Service Won't Start**
+   - Check system logs: `journalctl -u mariadb`
+   - Verify permissions on data directory
+
+2. **Can't Connect**
+   - Check bind address configuration
+   - Verify firewall settings
+   - Ensure correct credentials
+
+3. **Permission Issues**
+   - Check file permissions in /var/lib/mysql
+   - Verify mysql user ownership
+
+## License
+
+BSD
+
+## Author Information
+
+Created by [Your Name]
+Maintained by [Your Organization]
+
+## Support
+
+File issues on GitHub or contact [your support email]
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/nfs-client/README.md
+TITLE: NFS Client Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# NFS Client Ansible Role
+
+This role manages NFS client installation and mount configuration for Linux systems, providing a flexible way to manage NFS mounts across different distributions.
+
+## Overview
+
+The role handles:
+- Installation of NFS client packages
+- Configuration of NFS mount points
+- Support for multiple NFS shares
+- Cross-platform compatibility (Debian/RedHat)
+
+## Requirements
+
+### Platform Support
+- Debian/Ubuntu systems (uses apt)
+- RedHat/CentOS systems (uses dnf)
+
+### Prerequisites
+- Systemd-based system
+- Network connectivity to NFS server
+- Proper firewall configuration for NFS ports
+
+## Role Variables
+
+### Main Control Variable
+```yaml
+mount_nfs_share: false    # Master switch to enable/disable NFS mounting
+```
+
+### NFS Mount Configuration
+```yaml
+cluster_nfs_mounts:       # Dictionary of NFS mount configurations
+  mount_name:             # Unique identifier for each mount
+    src: "server:/share"  # NFS server and share path
+    path: "/mount/point"  # Local mount point
+    opts: "mount_options" # Mount options
+    state: "mounted"      # Mount state
+    fstype: "nfs4"       # Filesystem type
+```
+
+### Default Mount Options
+The role includes optimized default mount options:
+```yaml
+opts: "rw,noatime,bg,rsize=131072,wsize=131072,hard,intr,timeo=150,retrans=3"
+```
+
+These options provide:
+- Read-write access
+- Background mounting
+- Optimized read/write sizes
+- Hard mount with interrupts
+- Timeout and retry settings
+
+## Dependencies
+
+This role has no dependencies on other Ansible roles.
+
+## Example Playbook
+
+Basic usage with single mount:
+
+```yaml
+- hosts: servers
+  vars:
+    mount_nfs_share: true
+    cluster_nfs_mounts:
+      data:
+        src: "nfs.example.com:/data"
+        path: "/mnt/data"
+        opts: "rw,noatime,bg"
+        state: "mounted"
+        fstype: "nfs4"
+  roles:
+    - nfs-client
+```
+
+Advanced configuration with multiple mounts:
+
+```yaml
+- hosts: servers
+  vars:
+    mount_nfs_share: true
+    cluster_nfs_mounts:
+      data:
+        src: "nfs.example.com:/data"
+        path: "/mnt/data"
+        opts: "rw,noatime,bg"
+        state: "mounted"
+        fstype: "nfs4"
+      backup:
+        src: "backup.example.com:/backup"
+        path: "/mnt/backup"
+        opts: "ro,noatime,bg"
+        state: "mounted"
+        fstype: "nfs4"
+      temporary:
+        src: "temp.example.com:/temp"
+        path: "/mnt/temp"
+        opts: "rw,noatime"
+        state: "present"
+        fstype: "nfs4"
+  roles:
+    - nfs-client
+```
+
+## Mount States
+
+The role supports several mount states:
+- `mounted`: Ensure mount is present and mounted
+- `present`: Ensure mount is in fstab but not mounted
+- `absent`: Remove mount from fstab
+- `unmounted`: Ensure mount exists in fstab but is not mounted
+
+## File Structure
+
+```
+nfs-client/
+├── defaults/
+│   └── main.yml           # Default variables
+├── tasks/
+│   └── main.yml          # Main tasks
+└── vars/
+    └── main.yml         # Role variables
+```
+
+## Security Considerations
+
+- Use `root_squash` on the NFS server
+- Consider using NFSv4 with Kerberos authentication
+- Implement proper network segmentation
+- Use read-only mounts where possible
+- Configure appropriate file permissions
+
+## Performance Tuning
+
+The default mount options are optimized for performance:
+- `rsize=131072`: Read block size
+- `wsize=131072`: Write block size
+- `noatime`: Disable access time updates
+- `bg`: Background mounting
+- `hard`: Hard mount with retries
+- `timeo=150`: Timeout value
+- `retrans=3`: Number of retries
+
+## Troubleshooting
+
+Common issues and solutions:
+1. Mount fails
+   - Check network connectivity
+   - Verify NFS service on server
+   - Check firewall rules
+2. Performance issues
+   - Adjust rsize/wsize values
+   - Check network quality
+   - Monitor server load
+
+## License
+
+BSD
+
+## Author Information
+
+Originally created by Anthropic. Extended by the community.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## Notes
+
+- The role automatically handles package installation for different distributions
+- Supports both NFSv3 and NFSv4
+- Can manage multiple mounts simultaneously
+- Provides flexible mount options
+- Includes optimized default settings
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/podman/README.md
+TITLE: Podman Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# Podman Ansible Role
+
+This role manages the installation and configuration of Podman, a daemonless container engine for OCI containers. It's designed to provide a rootless container runtime environment as an alternative to Docker.
+
+## Overview
+
+The role handles:
+- Installation of Podman and related packages
+- Registry configuration
+- Rootless container support
+- Podman Compose functionality
+- Complete lifecycle management (install/remove)
+
+## Features
+
+### Core Components
+- Podman engine
+- Podman Compose for container orchestration
+- crun container runtime
+- Registry configuration management
+
+### Registry Configuration
+Default search registries:
+- quay.io
+- docker.io
+
+Security features:
+- Configurable insecure registries
+- Registry blocking
+- Short name resolution control
+
+## Requirements
+
+### Platform Support
+- Debian/Ubuntu systems
+- Systemd-based systems
+
+### Prerequisites
+- Systemd
+- apt package manager
+- Network access to container registries
+
+## Role Variables
+
+Simple configuration with one main control variable:
+
+```yaml
+podman_state: present    # Use 'absent' to remove Podman
+```
+
+## Dependencies
+
+This role has no dependencies on other Ansible roles.
+
+## Example Playbooks
+
+### Basic Installation
+
+```yaml
+- hosts: servers
+  roles:
+    - role: podman
+```
+
+### Installation with Custom Options
+
+```yaml
+- hosts: servers
+  vars:
+    podman_state: present
+  roles:
+    - role: podman
+```
+
+### Complete Removal
+
+```yaml
+- hosts: servers
+  vars:
+    podman_state: absent
+  roles:
+    - role: podman
+```
+
+## File Structure
+
+```
+podman/
+├── defaults/
+│   └── main.yml                 # Default variables
+├── files/
+│   └── site-registries.conf     # Registry configuration
+├── tasks/
+│   └── main.yml                # Main tasks
+└── vars/
+    └── main.yml               # Role variables
+```
+
+## Registry Configuration
+
+The role includes a default registry configuration with:
+
+```conf
+[registries.search]
+registries = []
+
+[registries.insecure]
+registries = []
+
+[registries.block]
+registries = []
+
+unqualified-search-registries = ["quay.io","docker.io"]
+short-name-mode = "permissive"
+```
+
+This configuration:
+- Defines default search registries
+- Allows configuration of insecure registries
+- Enables registry blocking
+- Configures short name resolution
+
+## Security Considerations
+
+### Rootless Containers
+- Runs containers without root privileges
+- Improved security isolation
+- Reduced attack surface
+
+### Registry Security
+- Configurable registry trust
+- Insecure registry management
+- Registry blocking capabilities
+
+## Operational Notes
+
+### Installation
+- Installs podman-compose for orchestration
+- Includes crun container runtime
+- Configures system registries
+
+### Removal
+- Complete package removal
+- Configuration cleanup
+- Automatic dependency cleanup
+
+## Troubleshooting
+
+Common issues and solutions:
+1. Registry access issues
+   - Check network connectivity
+   - Verify registry configuration
+   - Check registry credentials
+2. Container runtime issues
+   - Verify crun installation
+   - Check system resources
+   - Validate user permissions
+
+## License
+
+MIT
+
+## Author Information
+
+Created by Jack Lavender, et al.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## Future Development
+
+Current goals include:
+- Testing rootless systemd container support
+- Optimizing for daemon containers
+- Performance testing with applications like InfluxDB
+- Enhanced rootless runtime capabilities
+
+## Notes
+
+- Designed for rootless container operations
+- Focuses on security and simplicity
+- Includes Podman Compose support
+- Provides flexible registry configuration
+- Supports complete lifecycle management
+
+## Additional Resources
+
+- [Podman Documentation](https://docs.podman.io/en/latest/)
+- [Rootless Containers Guide](https://docs.podman.io/en/latest/markdown/podman.1.html#rootless-mode)
+- [Podman Compose Documentation](https://docs.podman.io/en/latest/markdown/podman-compose.1.html)
+
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/vs-code/README.md
+TITLE: README
+FILENAME: README.md
+==== CONTENT_START ====
+Role Name
+=========
+
+A brief description of the role goes here.
+
+Requirements
+------------
+
+Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+
+Role Variables
+--------------
+
+A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+
+Dependencies
+------------
+
+A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+
+Example Playbook
+----------------
+
+Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+
+    - hosts: servers
+      roles:
+         - { role: username.rolename, x: 42 }
+
+License
+-------
+
+BSD
+
+Author Information
+------------------
+
+An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/wireguard/readme.md
+TITLE: Wireguard Role
+FILENAME: readme.md
+==== CONTENT_START ====
+# Wireguard Role
+
+## Overview
+An Ansible role for managing Wireguard VPN client installation and configuration on Rocky Linux 9 and Debian 12 systems.
+
+## Features
+- Automated installation and configuration of Wireguard client
+- Cross-platform support (Rocky 9 and Debian 12)
+- Secure key generation and management
+- Automatic key backup to local data directory
+- Idempotent installation and removal
+- Configurable client settings
+
+## Requirements
+- Ansible 2.9 or higher
+- Root or sudo access on target systems
+- Python 3.6 or higher
+
+## Role Variables
+
+### Required Variables
+```yaml
+wireguard_svr_public_key: ""        # Server's public key
+wireguard_cluster_preshared_key: "" # Pre-shared key for the VPN
+wireguard_server_endpoint: ""       # Server's public IP or hostname
+```
+
+### Optional Variables
+```yaml
+wireguard_state: present            # Role state (present/absent)
+wireguard_client_ip: "10.10.0.2/24" # Client IP address
+wireguard_server_port: "51820"      # Server port
+wireguard_server_allowed_ips: "10.10.0.1/24" # Allowed IP range
+```
+
+## States
+
+### Present State
+When `wireguard_state: present`, the role will:
+1. Validate required variables
+2. Install Wireguard packages
+3. Generate client keys if not present
+4. Back up keys to ./data directory
+5. Configure wg0.conf
+6. Set appropriate permissions
+
+### Absent State
+When `wireguard_state: absent`, the role will:
+1. Stop Wireguard service
+2. Remove all Wireguard configurations
+3. Uninstall Wireguard packages
+4. Remove backed-up keys
+
+## Tags
+
+The role uses the following tags for granular execution control:
+
+### Primary Tags
+- `wireguard`: All Wireguard-related tasks
+- `wireguard:config`: Configuration tasks
+- `wireguard:install`: Installation tasks
+- `wireguard:remove`: Removal tasks
+- `wireguard:validate`: Variable validation tasks
+- `wireguard:packages`: Package management tasks
+- `wireguard:keys`: Key management tasks
+- `wireguard:service`: Service management tasks
+
+## Usage Examples
+
+### Basic Installation
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+  tags:
+    - wireguard
+```
+
+### Configuration Only
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+  tags:
+    - wireguard:config
+```
+
+### Package Installation Only
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+  tags:
+    - wireguard:packages
+```
+
+### Validate Configuration
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+  tags:
+    - wireguard:validate
+```
+
+### Tag Usage Examples
+
+Run only configuration tasks:
+```bash
+ansible-playbook playbook.yml --tags "wireguard:config"
+```
+
+Skip package installation:
+```bash
+ansible-playbook playbook.yml --skip-tags "wireguard:packages"
+```
+
+Run validation and configuration:
+```bash
+ansible-playbook playbook.yml --tags "wireguard:validate,wireguard:config"
+```
+
+## Usage Examples
+
+### Basic Installation
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+```
+
+### Custom Configuration
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_state: present
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+        wireguard_client_ip: "10.10.0.100/24"
+        wireguard_server_port: "51821"
+```
+
+### Removal
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_state: absent
+```
+
+## Suggested Improvements
+
+### Security Enhancements
+1. Add support for hardware security modules (HSM) for key storage
+2. Implement automated key rotation
+3. Add support for multi-factor authentication
+4. Implement certificate-based authentication option
+
+### Functionality Improvements
+1. Add support for multi-peer configurations
+2. Implement bandwidth monitoring and logging
+3. Add support for traffic shaping and QoS
+4. Create automatic backup and restore procedures
+5. Add support for IPv6
+
+### Operational Improvements
+1. Add health check monitoring
+2. Implement automatic failover capability
+3. Add performance metrics collection
+4. Create automatic documentation generation
+5. Add integration with popular monitoring systems
+
+### Management Improvements
+1. Add web interface for configuration management
+2. Create API endpoints for programmatic management
+3. Implement configuration validation tools
+4. Add support for configuration templates
+5. Create migration tools for different VPN solutions
+
+## License
+MIT
+
+## Author Information
+Created and maintained by Your Organization
+
+---
+*Documentation format follows the OpenAPI/AsyncAPI documentation style guide version 3.0, incorporating elements from the Ansible Galaxy role documentation requirements.*
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/wireguard/wireguard-readme-updated.md
+TITLE: Wireguard Role
+FILENAME: wireguard-readme-updated.md
+==== CONTENT_START ====
+# Wireguard Role
+
+[previous sections remain the same until Tags section]
+
+## Tags
+
+The role uses the following tags for granular execution control:
+
+### Primary Tags
+- `wireguard`: All Wireguard-related tasks
+- `wireguard:config`: Configuration tasks
+- `wireguard:install`: Installation tasks
+- `wireguard:remove`: Removal tasks
+- `wireguard:validate`: Variable validation tasks
+- `wireguard:packages`: Package management tasks
+- `wireguard:keys`: Key management tasks
+- `wireguard:service`: Service management tasks
+
+## Usage Examples
+
+### Basic Installation
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+  tags:
+    - wireguard
+```
+
+### Configuration Only
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+  tags:
+    - wireguard:config
+```
+
+### Package Installation Only
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+  tags:
+    - wireguard:packages
+```
+
+### Validate Configuration
+```yaml
+- hosts: vpn_clients
+  roles:
+    - role: wireguard
+      vars:
+        wireguard_svr_public_key: "AbCdEf123..."
+        wireguard_cluster_preshared_key: "XyZ789..."
+        wireguard_server_endpoint: "vpn.example.com"
+  tags:
+    - wireguard:validate
+```
+
+### Tag Usage Examples
+
+Run only configuration tasks:
+```bash
+ansible-playbook playbook.yml --tags "wireguard:config"
+```
+
+Skip package installation:
+```bash
+ansible-playbook playbook.yml --skip-tags "wireguard:packages"
+```
+
+Run validation and configuration:
+```bash
+ansible-playbook playbook.yml --tags "wireguard:validate,wireguard:config"
+```
+
+[rest of the documentation remains the same]
+
+==== CONTENT_END ====

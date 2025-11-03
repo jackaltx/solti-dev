@@ -1,0 +1,27 @@
+# Ignore collection subdirectories (they're separate repos)
+# But keep specific files we need for integration
+
+solti-monitoring/**
+!solti-monitoring/CLAUDE.md
+!solti-monitoring/README.md
+
+solti-containers/**
+!solti-containers/CLAUDE.md
+!solti-containers/README.md
+
+solti-ensemble/**
+!solti-ensemble/CLAUDE.md
+!solti-ensemble/README.md
+
+solti-monitoring.wiki/**
+!solti-monitoring.wiki/*.md
+
+# Keep the consolidated docs
+!*_docs.txt
+
+# Standard ignores
+*.pyc
+__pycache__/
+.ansible/
+*.retry
+.DS_Store

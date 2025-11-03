@@ -1,0 +1,40 @@
+collections:
+  solti-monitoring:
+    status: active
+    depends_on:
+      - solti-ensemble
+    provides:
+      - Metrics collection (Telegraf)
+      - Time-series storage (InfluxDB)
+      - Log aggregation (Loki, Alloy)
+    
+  solti-containers:
+    status: active
+    depends_on: []
+    provides:
+      - Test containers for CI/CD
+      - Development services
+    
+  solti-ensemble:
+    status: starting
+    depends_on: []
+    provides:
+      - MariaDB
+      - HashiVault
+      - ACME services
+    
+  solti:
+    status: documentation
+    depends_on: []
+    provides:
+      - Architecture docs
+      - Patterns and philosophy
+
+integration_patterns:
+  - name: monitoring_with_backend
+    collections: [solti-monitoring, solti-ensemble]
+    description: Monitoring stack using ensemble database services
+    
+  - name: container_testing
+    collections: [solti-monitoring, solti-containers]
+    description: Testing monitoring with container infrastructure

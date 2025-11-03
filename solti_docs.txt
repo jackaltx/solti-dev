@@ -1,0 +1,2735 @@
+==== FILE_START ====
+PATH: README.md
+TITLE: SOLTI - Systems Oriented Laboratory Testing & Integration
+FILENAME: README.md
+==== CONTENT_START ====
+# SOLTI - Systems Oriented Laboratory Testing & Integration
+
+## Overview
+
+SOLTI provides a comprehensive framework for testing and integrating system components in a controlled environment. The project emphasizes methodical testing, system behavior analysis, and component integration.
+
+## Goal
+
+I have done small lab clusters for a while. Not the HVAC kind, but those that are built to task when/as desired.
+The software and hardware technology half-life is real. The desirements and requirements alway grow tigher.
+
+Lately the focus was on security testing. As a kinestic creative I learn best by doing. The prize is building out a flexible, repeatable, testable computer cluster.
+In this exercise I wanted to learn ansible, containers, github and LLMs. These efforts started on [cluster monitoring](https://github.com/jackaltx/solti-monitoring)
+to handle log and metric generation and collection.  The collection project is maturing, and I am starting on the ensemble work.  My tactical effort will
+be to [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself) the molecule testing pattern, then move onto tools I need soon.
+
+## Claude as my pair programmer
+
+Claude writes a lot of code quickly and has been very helpful.  It has been interesting to learn about my limits. Claude is tool, if you know what you want you can likley get it.  
+But sometimes the journey will be rocky and hard.  You will explore areas you likley have not considered viable.  Sometimes that is a good thing.  Debugging with Claude can go far afield.
+However, when I keep to my north star and focus on the goal the product looks good.
+
+Claude wrote the first draft of this, and helped come up with tool ideas. Claude's writing is better than mine. The ability to review all the code and come up with a good readme has been fantastic.
+
+Why Claude? Serendipity really. A smart young fellow showed me ChatGPT and it was cool.  A year later he showed me how he was using Claude.  After a couple of hours of exploration I signed up with a plan to do a years worth of coding ideas.  
+
+That bright young fellow has moved onward. One of his reasons was how claude is sandboxed. It can't access the code directly.  I see changed in that staring.   I like the MCP concept, but I have not gotten it to work
+outside of my Mac. I am sure it will all come togther when time is right.
+
+Currently it only see's the "artifacts" that I have uploaded to it. It cannot run any of the code it generates, and it sure looks pretty.  Yet, the debugging sessions are infuriating.  Mostly because I am using the AI to teach me the language and sometine the application. It's often a two steps forward and many back.
+
+There are times the AI looks at the artifacts  (or uploads) and other times not at all. There are moments of brilliance punctuated by moments of "you are wrong and this is why". The amount of energy it has to put forth is variable, and the results show it.
+
+My main caution is "don't let it take you too far from your vision". You will need to pull in the reigns from time to time and focus on the "why". I have notices two distinct patterns emerge when debuging with the AI: the oak and willow.  
+
+The oak path is on where it has decided the path to solving the problem is just a tweak away. It had no concept that the changes were gong to create a maintenance issue.  After all this is the job, deliver it and
+move on. It is logical and given the speed it can deliver a possible solution when things change, that may be good enough.
+
+The willow path bends to a will. More than once we have gone in circles and core issue was a deeper structurals issue. An example of that kind of issue is the Proxmox-ve LXC interface via command line interface, pct exec, does not create a shell which does not allow you to pipe over files.  This breaks ansible interface module for configuration. I got to learn several techniques for building an commmand, but none them can ever work (but I have an idea that I might try one day)
+
+Finding balance requires me to learn how to work with this tool. The results are impressive and I am generally pleased with freults.
+
+### Current Focus with Claudee
+
+Work towards standardizing a reporting flow. We have now moved to more feature testing (i.e., logging, metrics) focus over three primary linux distros (i.e., rocky93, Debian12, Ubuntu24) with three computes (i.e., promox-ve, podman, github).   So to keep some orthogonality in this 3D matrix I want to keep the verify outputs to the feature (logging,...)  and separate the outputs into an assembly pipeline.
+
+For each test run on github it create a short version for GIST output and Wiki Detailed report for all tagged versions and last three for the main branch. On github it will continue to put the files in verify_output/ in the saved output.
+
+I have elected to move from GIST to mattermost.  Mainly because it is cool to use githubs computer to run tests, but is SLOW to develop and they are limited.  So I will do my regression testing locally.  Mattermost for notications and Elasticsearch for results.  
+
+To support that I decided to create solti-containers. This is a patter for creates localhost services that have configured with some rigor and security in mind.  So, I took the ansible work and had the AI use that patter to create a few services.  These will be refined in attempt to create a reusable framework for adding the "next" one.  Which will be minio to support S3 buckets.
+
+## Name Origin
+
+- **S**ystems: Managing and testing system-of-systems
+- **O**riented: Structured and purposeful approach
+- **L**aboratory: Controlled testing environment
+- **T**esting: Verification and validation
+- **I**ntegration: Component interconnection and interaction
+
+Named after [Sir Georg Solti](https://en.wikipedia.org/wiki/Georg_Solti), renowned for his precise and analytical conducting style.
+His [Wagner](https://en.wikipedia.org/wiki/Der_Ring_des_Nibelungen_(Georg_Solti_recording)) works have held up to time.
+
+## Project Structure
+
+There is no one way to look at this project structure.  At the heart is about building
+a flexible and testable cluster out of services writen by other people. To accomplish this
+I am using the Ansible inventory to define the cluster interactions. Ansible roles are idempotent scripts
+that install, configure, test the clusters intended functionality. This is our starting. ansible galaxy
+collection structure concept.
+
+```
+jackaltx/
+├── solti/monitoring/   # System monitoring and metrics collection
+├── solti/conductor/    # Proxmox management and orchestration
+├── solti/ensemble/     # Support tools and shared utilities
+├── solti/containers/   # testing Containers
+└── solti/score/        # Documentation and playbooks
+```
+
+To realize this, I use this logical repository structure on github
+
+```
+jackaltx/
+├── solti-monitoring/   # System monitoring and metrics collection
+├── solti-conductor/    # Proxmox management and orchestration
+├── solti-ensemble/     # Support tools and shared utilities
+├── solti-containers/   # Testing containers
+└── solti-score/        # Documentation and playbooks
+```
+
+## Github Repository links
+
+- [jackaltx/solti-monitoring](https://github.com/jackaltx/solti-monitoring)  
+- jackaltx/solti-conductor/    # Proxmox management and orchestration
+- [jackaltx/solti-ensemble](https://github.com/jackaltx/solti-ensemble)
+- [jackaltx/solti-containers](https://github.com/jackaltx/solti-containers)
+- jackaltx/solti-score
+
+Current implementation includes:
+
+- Metrics collection (Telegraf)
+- Time-series storage (InfluxDB)
+- Log aggregation (Loki)
+- OpenTelemetry collection (Alloy)
+- Shared configurations and utilities
+
+### solti-conductor (TBD)
+
+Planned features:
+
+- Proxmox VM management
+- Resource orchestration
+- Configuration management
+- Deployment automation
+
+### solti-ensemble (Starting)
+
+Current implementation includes:
+
+- Mariadb (MySQL)
+- HashiVault (InfluxDB)
+- Automated Certificate Management Environment (ACME)
+
+Planned features:  (not now)
+
+- NFS client management
+- Common system configurations
+- Shared security policies
+- Cross-component utilities
+
+### solti-score (TBD)
+
+Documentation and playbooks:
+
+- Architecture documentation
+- Implementation guides
+- Integration patterns
+- Best practices
+
+## Testing Philosophy
+
+- Emphasis on controlled environments
+- Systematic behavior analysis
+- Component isolation capability
+- Integration validation
+- Performance measurement
+
+## Key Features
+
+- Comprehensive monitoring
+- Automated testing
+- System integration
+- Behavior analysis
+- Performance metrics
+- Log aggregation
+- Configuration management
+
+## Technology Stack
+
+Current components:
+
+- Ansible for automation
+- Molecule for testing
+- InfluxDB for metrics
+- Loki for logs
+- Telegraf for collection
+- Alloy for OpenTelemetry
+- Proxmox for virtualization
+
+## Development Guidelines
+
+- Modular design
+- Clear separation of concerns
+- Comprehensive testing
+- Documented interfaces
+- Version controlled components
+- Consistent naming conventions
+
+## Testing Methodology
+
+- Unit testing with Molecule
+- Integration testing across components
+- Performance validation
+- Behavior verification
+- Security validation
+
+## Deployment
+
+- Automated via Ansible
+- Environment-specific configurations
+- Version-controlled deployments
+- Rollback capabilities
+- Monitoring integration
+
+## Security Considerations
+
+- Component isolation
+- Access control
+- Secure communications
+- Audit logging
+- Compliance validation
+
+## Future Directions
+
+- PCAP analysis integration
+- Extended system feeders
+- Enhanced automation
+- Additional monitoring capabilities
+- Extended testing frameworks
+
+## Contributing
+
+TBD:
+
+- Contribution guidelines
+- Code review process
+- Testing requirements
+- Documentation standards
+- Version control workflow
+
+## License
+
+The concept is open. All my work will be MIT.
+
+## Contact
+
+Use github for now.
+
+## Acknowledgments
+
+- Sir Georg Solti - Name inspiration
+- Open source community
+- Project contributors
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: TestingConcept.md
+TITLE: Testing Strategy and Evolution Path
+FILENAME: TestingConcept.md
+==== CONTENT_START ====
+# Testing Strategy and Evolution Path
+
+## Current Architecture
+
+### Master Report Structure
+The verification system builds a hierarchical report structure designed for both immediate verification needs and future analysis:
+
+```yaml
+verify_master_report:
+  metadata:
+    timestamp: ISO8601
+    distribution: string
+    molecule_scenario: string
+    run_id: epoch
+  capabilities:
+    metrics:
+      start_time: ISO8601
+      components: [string]
+      checks:
+        services: {...}
+        connectivity: {...}
+        data_flow: {...}
+      patterns: {...}
+      timing: {...}
+    logs:
+      # Similar structure for logs capability
+```
+
+### Key Features
+1. Progressive Data Collection
+   - Basic service status
+   - Connectivity verification
+   - Data flow validation
+   - Error pattern capture
+   - Performance metrics
+
+2. NoSQL-Ready Structure
+   - Hierarchical organization
+   - Flexible schema
+   - Rich metadata
+   - Pattern-friendly structure
+
+## Evolution Path
+
+### Phase 1: Basic Verification (Current)
+- Molecule-based testing
+- Individual capability verification
+- Basic success/failure reporting
+- Initial pattern capture
+
+### Phase 2: Pattern Recognition
+- Implement error categorization
+- Track performance patterns
+- Identify common failure modes
+- Establish baseline metrics
+
+### Phase 3: NoSQL Integration
+- Select appropriate NoSQL database
+- Define initial schema mapping
+- Implement data migration
+- Set up basic queries
+
+### Phase 4: Analysis Enhancement
+- Pattern analysis
+- Performance trending
+- Failure correlation
+- Component relationship mapping
+
+### Phase 5: Machine Learning Integration
+- Test pattern analysis
+- Anomaly detection
+- Test coverage optimization
+- Automatic test generation
+
+## Data Structure Benefits
+
+### Current Benefits
+1. Verification
+   - Clear pass/fail status
+   - Detailed failure information
+   - Component status tracking
+   - Performance metrics
+
+2. Debugging
+   - Comprehensive state capture
+   - Temporal information
+   - Error context
+   - Component relationships
+
+### Future Benefits
+1. Analysis
+   - Pattern recognition
+   - Trend analysis
+   - Performance optimization
+   - Failure prediction
+
+2. Machine Learning
+   - Training data for pattern recognition
+   - Anomaly detection
+   - Test coverage optimization
+   - New test case generation
+
+## Implementation Notes
+
+### Current Implementation
+The verify-metrics.yml task:
+1. Initializes/updates master report
+2. Performs verification checks
+3. Captures timing and patterns
+4. Records success/failure status
+
+### Future Enhancements
+1. Pattern Recognition
+   ```yaml
+   patterns:
+     error_types: [...]
+     performance_patterns: {...}
+     correlation_data: {...}
+   ```
+
+2. Test Generation Data
+   ```yaml
+   test_insights:
+     coverage_gaps: [...]
+     suggested_tests: [...]
+     optimization_hints: {...}
+   ```
+
+3. Analysis Metadata
+   ```yaml
+   analysis:
+     performance_baselines: {...}
+     error_thresholds: {...}
+     correlation_rules: [...]
+   ```
+
+## Notes for Future Development
+
+### NoSQL Considerations
+- Document structure allows flexible evolution
+- Rich querying capabilities
+- Pattern analysis friendly
+- Scale-out potential
+
+### Machine Learning Potential
+1. Pattern Recognition
+   - Error categorization
+   - Performance anomalies
+   - Component relationships
+   - Test effectiveness
+
+2. Test Generation
+   - Coverage optimization
+   - Scenario generation
+   - Load test profiles
+   - Error simulation
+
+3. Predictive Capabilities
+   - Failure prediction
+   - Performance forecasting
+   - Resource optimization
+   - Test prioritization
+
+## Integration Points
+
+### Current Integration
+- Molecule testing framework
+- Ansible verification tasks
+- YAML report generation
+- Basic pattern capture
+
+### Future Integration
+1. Data Storage
+   - NoSQL database
+   - Time series data
+   - Pattern database
+   - Analysis results
+
+2. Analysis Tools
+   - Pattern recognition
+   - Trend analysis
+   - Correlation detection
+   - Anomaly identification
+
+3. Machine Learning Pipeline
+   - Data preprocessing
+   - Model training
+   - Pattern detection
+   - Test generation
+
+## Conclusion
+This strategy provides a path from current verification needs to future automated test enhancement 
+while maintaining backward compatibility and allowing incremental improvement. The hierarchical data 
+structure and NoSQL-friendly format enable gradual evolution from basic verification to sophisticated 
+pattern analysis and automated test generation.
+
+## Afterword by Jackaltx
+
+(me) I think verify_report (as written) is a dictionary of (lists, dictionaries, scalar).   If I were doing this in some languages what do is give it a var location on the heap to store the data, then on the return I would check it and create a pointer to that.  I would then use the master pointer to loop over the various tests.   
+
+(me) Passing in a master variable feels like one one test will have access to previous tests data.   am I wrong?
+
+(claude) Ah, I understand your thought process! You're thinking about memory/pointer management and data visibility between included tasks. Let me clarify how Ansible handles this:
+In Ansible, when using set_fact to modify a dictionary, each task gets its own copy of the variables. Unlike languages where you could pass a pointer/reference to a shared memory location, 
+Ansible facts are more like immutable state - each task sees the state as it was when that task started.
+
+(me) Yet as the same time.   consider this....main.yml calls a list of various tests of increasing  complexity (like usage or miss-use).   having access to that an feeding that all-test dictionary will allow feeding it into an learning engine.  and allow the learning engine to postulate new tests to add into the stack.
+
+(claude) Ah, now that's a fascinating perspective! You're thinking about building up a knowledge base of test results that could inform both test analysis and test generation. This completely changes how we should think about the master report structure.
+
+* Sometimes claude seems there with and show understanding the concept. Not always. Notice how he strokes my ego, never really adding to the design, and yet can generate such pretty code. I had him create this document so I can add it into the project artifacts. Even if you upload, it seems to work better if you reference it in the question. *
+  
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: TestingDesignPattern.md
+TITLE: Solti Testing Designe Pattern
+FILENAME: TestingDesignPattern.md
+==== CONTENT_START ====
+# Solti Testing Designe Pattern
+
+## Working on Dynamic Structure
+
+Ah, now I understand - we need to dynamically generate the report based on the `monitoring_capabilities` structure and the collected results in `all_verify_results` and `all_verify_failed`. Let me help create that.
+
+This approach:
+
+1. Dynamically generates capability summaries based on `monitoring_capabilities` structure
+2. Includes both capability-level and role-level results
+3. Adds container health information from diagnostics
+4. Shows verification status for each capability
+5. Creates an overall status based on all verification results
+
+The tasks process the collected results using the same structure that was used to gather them, ensuring all capabilities and roles are properly represented.
+
+The key points:
+
+- Uses the standard keys in `all_verify_results` (`capability-shared`, `role-verify-level0`, etc.)
+- Handles missing results gracefully
+- Maintains the hierarchical structure of capabilities and roles
+- Includes both success and failure information
+
+Would you like me to:
+
+1. Show how to format specific sections differently?
+2. Add more sophisticated error handling?
+3. Include additional metadata in the report?
+
+## Starting Outline
+
+1. **Structure**
+
+- Each verification result is a self-contained unit
+- Results are keyed by meaningful identifiers (e.g., `capability-shared`, `role-verify-level0`)
+- The structure allows for both hierarchical (capability->role) and flat organization
+- The stack can accumulate results from different sources without requiring tight coupling
+
+2. **Data Type Flexibility**
+Your point about MIME types is excellent. The current setup could easily be extended to support multiple data types per test:
+
+```yaml
+test_result:
+  content: |
+    === Test Results ===
+    ...formatted output...
+  mime_type: text/markdown
+  metadata:
+    timestamp: "2025-02-12T23:46:11Z"
+    format_version: "1.0"
+    data_uri: "s3://bucket/test-results/metrics-123.bin"
+    artifacts:
+      - type: application/octet-stream
+        uri: "file:///tmp/test-dump.bin"
+      - type: application/json
+        uri: "http://metrics-store/test/456"
+```
+
+3. **Integration Points**
+The current structure already supports:
+
+- Text reports (what you're doing now)
+- Could add structured data for programmatic analysis
+- Could include URIs for external resources
+- Could add messaging queue identifiers for notifications
+
+4. **Extensibility**
+You could add capabilities like:
+
+```yaml
+monitoring_capabilities:
+  logs:
+    ...
+    result_handlers:
+      - type: text_report
+        format: markdown
+      - type: metrics_export
+        destination: prometheus
+      - type: notification
+        target: slack
+```
+
+The all_verify_results pattern you've implemented is actually following good separation of concerns:
+
+- Collection (gathering test results)
+- Storage (the results stack)
+- Presentation (formatting for reports)
+- Integration (could add handlers for different output types)
+
+If you wanted to extend this in the future, you've left yourself good hooks for:
+
+- Binary data storage
+- External service integration
+- Different output formats
+- Test result aggregation and analysis
+- Automated notification systems
+
+So no, definitely not a faux pas - it's a solid foundation that could be built upon in multiple directions while maintaining backward compatibility with your current usage.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: molecule-strategy.md
+TITLE: Molecule Testing Strategy for Container Roles
+FILENAME: molecule-strategy.md
+==== CONTENT_START ====
+# Molecule Testing Strategy for Container Roles
+
+## Current Setup Analysis
+
+### Common Elements in Both Roles
+
+- Both roles use Podman for container management
+- Both implement systemd integration via Quadlets
+- Both have similar directory structures and configuration patterns
+- Both support multiple Linux distributions
+
+### Role-Specific Considerations
+
+#### Mattermost Role
+
+- Multiple container dependencies (PostgreSQL + Mattermost)
+- Requires network communication between containers
+- Has database initialization requirements
+- Manages configuration files and TLS certificates
+
+#### Elasticsearch Role
+
+- Single primary container with optional GUI container
+- Has specific system requirements (vm.max_map_count)
+- Memory management considerations
+- TLS and security configuration options
+
+## Proposed Molecule Testing Strategy
+
+### 1. Basic Structure
+
+```yaml
+roles/
+  mattermost/
+    molecule/
+      default/
+        molecule.yml      # Main test configuration
+        prepare.yml       # System preparation
+        converge.yml      # Role execution
+        verify.yml        # Test assertions
+        cleanup.yml       # Optional cleanup
+      podman/            # Podman-specific scenario
+        molecule.yml
+  elasticsearch/
+    molecule/
+      [similar structure]
+```
+
+### 2. Platform Configuration
+
+```yaml
+# molecule.yml example
+platforms:
+  - name: rhel9
+    image: registry.access.redhat.com/ubi9/ubi-init
+    privileged: true
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    command: "/usr/sbin/init"
+    
+  - name: debian12
+    image: debian:bookworm
+    privileged: true
+    command: "/lib/systemd/systemd"
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+```
+
+### 3. Test Phases
+
+#### Prepare Phase (prepare.yml)
+
+```yaml
+- name: Prepare test environment
+  hosts: all
+  tasks:
+    - name: Install common dependencies
+      package:
+        name:
+          - podman
+          - python3-pip
+        state: present
+      
+    - name: Configure system requirements
+      sysctl:
+        name: vm.max_map_count
+        value: "262144"
+      when: "'elasticsearch' in ansible_role_names"
+```
+
+#### Converge Phase (converge.yml)
+
+```yaml
+---
+- name: Converge
+  hosts: all
+  tasks:
+    # For Mattermost role
+    - name: Include mattermost role
+      ansible.builtin.include_role:
+        name: mattermost
+      vars:
+        mattermost_postgres_password: "molecule_test_password"
+        mattermost_port: 8065
+      when: "'mattermost' in ansible_role_names"
+
+    # For Elasticsearch role
+    - name: Include elasticsearch role
+      ansible.builtin.include_role:
+        name: elasticsearch
+      vars:
+        elasticsearch_password: "molecule_test_password"
+        elasticsearch_memory: "1g"
+      when: "'elasticsearch' in ansible_role_names"
+```
+
+#### Verify Phase (verify.yml)
+
+```yaml
+- name: Verify deployment
+  hosts: all
+  tasks:
+    # Mattermost Tests
+    - name: Check Mattermost service
+      uri:
+        url: "http://localhost:{{ mattermost_port }}"
+        status_code: 200
+      when: "'mattermost' in ansible_role_names"
+      
+    # Elasticsearch Tests
+    - name: Check Elasticsearch health
+      uri:
+        url: "http://localhost:{{ elasticsearch_port }}/_cluster/health"
+        status_code: 200
+      when: "'elasticsearch' in ansible_role_names"
+```
+
+### 4. Test Scenarios
+
+#### Basic Functionality
+
+- Role syntax checking
+- Basic installation
+- Service startup
+- Port accessibility
+- Basic functionality verification
+
+#### Security Testing
+
+- TLS configuration
+- Password handling
+- SELinux contexts (RHEL)
+- File permissions
+
+#### Performance Testing
+
+- Memory limits
+- Container resource allocation
+- Multi-container communication (Mattermost)
+
+#### Failure Testing
+
+- Network interruption handling
+- Container restart behavior
+- Data persistence verification
+
+### 5. Implementation Strategy
+
+1. **Phase 1: Basic Testing**
+   - Set up basic Molecule structure
+   - Implement syntax and installation tests
+   - Basic service verification
+
+2. **Phase 2: Platform Coverage**
+   - Add support for all target distributions
+   - Validate platform-specific configurations
+   - Test systemd integration
+
+3. **Phase 3: Advanced Testing**
+   - Security configurations
+   - Performance testing
+   - Failure scenarios
+
+4. **Phase 4: CI Integration**
+   - GitHub Actions integration
+   - Automated test runs
+   - Test result reporting
+
+## Recommendations
+
+1. **Testing Environment**
+   - Use GitHub Actions instead of Travis CI (more modern, better integrated)
+   - Implement matrix testing for different distributions
+   - Use container caching to speed up tests
+
+2. **Test Organization**
+   - Separate scenarios for different test types
+   - Use tagging for selective test execution
+   - Implement shared test dependencies
+
+3. **Quality Assurance**
+   - Add linting with ansible-lint
+   - Implement idempotence testing
+   - Add documentation testing
+
+4. **Monitoring & Reporting**
+   - Configure test result collection
+   - Set up test coverage reporting
+   - Implement test timing metrics
+
+## Next Steps
+
+1. Create basic Molecule test structure for both roles
+2. Implement basic scenario tests
+3. Add platform-specific configurations
+4. Set up GitHub Actions workflow
+5. Add advanced test scenarios
+6. Document testing procedures
+
+## Example GitHub Actions Workflow
+
+```yaml
+name: Molecule Test
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        distro:
+          - rhel9
+          - debian12
+        role:
+          - mattermost
+          - elasticsearch
+    
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        
+      - name: Install dependencies
+        run: pip install molecule[docker] ansible-lint
+        
+      - name: Run Molecule tests
+        run: molecule test
+        env:
+          MOLECULE_DISTRO: ${{ matrix.distro }}
+```
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: podman-quadlet-article.md
+TITLE: Understanding and Implementing Podman Quadlets: A Practical Guide
+FILENAME: podman-quadlet-article.md
+==== CONTENT_START ====
+# Understanding and Implementing Podman Quadlets: A Practical Guide
+
+This was written after I had quadlets and generated systemd files working.  I knew we
+needed to work out the main issue.  My projects have moved on toward quadlets only,  but
+this writeup explains the way I did the "generate the systemd file kibuki dance"  in early 2025.
+
+## The Problem Space
+
+System administrators and DevOps engineers often need to manage containerized applications using systemd for service management. Historically, this involved a two-step process:
+
+1. Create and configure containers using Podman
+2. Generate systemd unit files using `podman generate systemd`
+
+This approach has several drawbacks:
+
+- Complex naming requirements between containers and generated services
+- Difficult to maintain synchronization between Podman configurations and systemd units
+- No single source of truth for the service definition
+- Generated unit files need to be regenerated when container configurations change
+
+## Enter Quadlets
+
+Podman Quadlets provide a new approach to defining containerized services managed by systemd. Instead of generating systemd unit files separately, Quadlets allow you to define both the container configuration and systemd service aspects in a single, declarative file.
+
+### Key Benefits
+
+- Single source of truth for service definition
+- Declarative configuration
+- Automatic systemd unit generation
+- Better integration between Podman and systemd
+- More maintainable and version-control friendly
+
+## How Quadlets Work
+
+Quadlets introduce a new file format that combines container configuration with systemd unit file definitions. The key insight is that the filename becomes a critical part of the configuration:
+
+```ini
+# elasticsearch.pod
+[Pod]
+PublishPort=127.0.0.1:${ELASTICSEARCH_PORT}:9200
+
+# elasticsearch-node.container
+[Container]
+Pod=elasticsearch.pod
+Image=docker.io/elasticsearch:8.12.1
+```
+
+### Critical Pattern Understanding
+
+The key pattern that makes Quadlets work:
+
+1. Pod Definition:
+   - Filename defines the base reference (e.g., `elasticsearch.pod`)
+   - No explicit naming needed - systemd and Podman names derive from the file
+
+2. Container References:
+   - Containers reference pods using the pod's filename (e.g., `Pod=elasticsearch.pod`)
+   - Container files should be named descriptively (e.g., `elasticsearch-node.container`)
+
+3. Service Integration:
+   - Systemd service names are automatically generated
+   - Dependencies can be expressed using standard systemd unit syntax
+
+## Implementation Example
+
+Here's a complete example showing the pattern:
+
+```ini
+# elasticsearch.pod
+[Pod]
+PublishPort=127.0.0.1:${ELASTICSEARCH_PORT}:9200
+PublishPort=127.0.0.1:${ELASTICSEARCH_GUI_PORT}:8080
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
+
+# elasticsearch-node.container
+[Unit]
+Description=Elasticsearch Container
+After=network-online.target
+
+[Container]
+Image=docker.io/elasticsearch:8.12.1
+Pod=elasticsearch.pod
+Volume=/home/user/elasticsearch-data/config:/usr/share/elasticsearch/config:Z,U
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+# elasticsearch-gui.container
+[Unit]
+Description=Elasticsearch GUI Container
+
+[Container]
+Image=docker.io/cars10/elasticvue:latest
+Pod=elasticsearch.pod
+```
+
+## Best Practices
+
+1. File Organization:
+
+   ```
+   ~/.config/containers/systemd/
+   ├── app.pod
+   ├── app-main.container
+   └── app-db.container
+   ```
+
+2. Naming Conventions:
+   - Pod files: `<service>.pod`
+   - Container files: `<service>-<role>.container`
+   - Keep names consistent and descriptive
+
+3. Service Dependencies:
+   - Use proper systemd unit dependencies
+   - Reference generated service names correctly
+
+4. Environment Variables:
+   - Use systemd-style variable references: `${VAR_NAME}`
+   - Define variables in compatible formats
+
+## Transitioning Existing Services
+
+When moving from traditional Podman/systemd setups to Quadlets:
+
+1. Identify all components:
+   - Pods
+   - Containers
+   - Volume mounts
+   - Network configurations
+
+2. Create Quadlet files:
+   - Start with pod definition
+   - Add container definitions
+   - Maintain existing names where possible
+
+3. Test deployment:
+   - Use `podman` commands to verify container setup
+   - Use `systemctl` commands to verify service management
+
+## Automation Considerations
+
+When automating Quadlet deployments (e.g., with Ansible):
+
+1. Choose deployment method:
+
+```yaml
+# Variable to control deployment method
+elasticsearch_use_quadlet: true
+
+# Dynamic directory path
+elasticsearch_systemd_dir: "{{ ansible_env.HOME }}/.config/{{ 'containers' if elasticsearch_use_quadlet else 'systemd' }}/{{ 'systemd' if elasticsearch_use_quadlet else 'user' }}"
+```
+
+2. Handle both methods:
+
+```yaml
+- name: Template service files
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ elasticsearch_systemd_dir }}/{{ item.dest }}"
+  loop:
+    - { src: elasticsearch.pod.j2, dest: elasticsearch.pod }
+    - { src: elasticsearch-node.container.j2, dest: elasticsearch-node.container }
+  when: elasticsearch_use_quadlet | bool
+```
+
+## Common Gotchas and Solutions
+
+1. Pod Name References:
+   - Problem: "pod X is not Quadlet based"
+   - Solution: Use exact pod filename in container's Pod= directive
+
+2. Service Names:
+   - Problem: Service not found
+   - Solution: Use correct generated service names (e.g., `elasticsearch-pod.service`)
+
+3. File Permissions:
+   - Problem: systemd can't read Quadlet files
+   - Solution: Ensure correct ownership and permissions (0644)
+
+## Conclusion
+
+Podman Quadlets represent a significant improvement in managing containerized services with systemd. They provide:
+
+- Better integration between containers and system services
+- More maintainable configurations
+- Clearer relationships between components
+
+The key to success is understanding the naming patterns and relationships between files. While the transition might require some rethinking of existing setups, the benefits in maintainability and clarity make it worthwhile.
+
+## Next Steps
+
+1. Audit existing container deployments
+2. Plan transition strategy
+3. Test Quadlet configurations
+4. Implement monitoring and logging
+5. Document local standards and practices
+
+Remember: Quadlets are relatively new and evolving. Stay current with Podman documentation and community practices.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: solti-ci-cd-plan.md
+TITLE: SOLTI CI/CD Plan
+FILENAME: solti-ci-cd-plan.md
+==== CONTENT_START ====
+# SOLTI CI/CD Plan
+
+## 1. Introduction
+- Purpose: Outline the CI/CD integration plan for the SOLTI project to ensure smooth development, reliable testing, and efficient releases.
+- Benefits: Streamline development process, catch issues early, automate deployment, and maintain stable production code.
+
+## 2. Source Control Integration
+- Version Control System: Git
+- Branching Strategy:
+  - `main` branch: Stable, production-ready code. No direct development after v1.0.0 release.
+  - `release-X.0.0` branches: Final testing and preparation for major releases.
+  - `develop` or `next` branch: Ongoing development work for upcoming releases.
+  - Hotfix branches: Critical bug fixes for production code.
+- Repository Hosting: GitHub
+- Access Control: Maintain strict controls and review processes for merges to `main`.
+
+## 3. CI Pipeline
+- Trigger Events: Pull requests, merges to `develop`, `release-*`, and `main` branches.
+- Stages:
+  - Checkout code
+  - Install dependencies
+  - Lint code (ansible-lint, yamllint)
+  - Unit tests (Molecule)
+  - Integration tests
+  - Security scans (ansible-vault, SAST)
+- Artifact Generation: Docker images, Ansible packages
+- Notifications: Slack, email
+- CI Platform: GitHub Actions
+
+## 4. CD Pipeline
+- Environments: Development, Staging, Production
+- Automated Deployment:
+  - Targets: Proxmox, bare metal
+  - Configuration Management: Ansible
+  - Secrets Management: Ansible Vault
+  - Rollback Procedures: Ansible playbooks for downgrades
+- Manual Approval Gates: Required for Production deployments
+- Monitoring Integration: InfluxDB, Loki, Telegraf
+- CD Platform: Ansible Tower
+
+## 5. Testing Strategy
+- Types: Unit (Molecule), Integration, Performance
+- Automation: GitHub Actions, Ansible
+- Test Data Management: Dedicated test data repositories
+- Environment Provisioning: Ansible, Proxmox
+- Reporting: JUnit reports, Slack notifications
+
+## 6. Release Management
+- Versioning: Semantic Versioning (SemVer)
+- Cadence: Major releases every 6 months, patches as needed
+- Release Notes: Auto-generated from Git history and pull request descriptions
+- Artifacts: Docker images, Ansible packages
+- Approval Process: Peer review, QA sign-off, management approval for major releases
+
+## 7. Infrastructure as Code
+- Environment Definitions: Terraform for cloud resources, Ansible for others
+- Configuration: Ansible playbooks
+- Provisioning: Terraform apply, Ansible playbooks
+- Drift Detection: Periodic Terraform plan, Ansible --check
+
+## 8. Monitoring and Observability
+- Integration: InfluxDB for metrics, Loki for logs, Telegraf for collection
+- Logging: Loki aggregation, Grafana dashboards
+- Alerting: Kapacitor, PagerDuty
+- Performance Metrics: Telegraf system metrics, application-specific metrics
+
+## 9. Security Considerations
+- Credential Management: Ansible Vault, secrets in environment variables
+- Compliance Checks: Periodic CIS benchmark scans
+- Vulnerability Scanning: OWASP ZAP, Trivy
+- Access Controls: Principle of least privilege, regular access reviews
+
+## 10. Onboarding and Training
+- Developer Onboarding: Pairing sessions, documentation
+- Documentation: README files, wiki pages, Jupyter notebooks
+- Incident Response Training: Tabletop exercises, runbooks
+
+## 11. Continuous Improvement
+- Metrics: Lead time, deployment frequency, mean time to recovery
+- Feedback Loops: Blameless post-mortems, retrospectives
+- Process Refinement: Quarterly process reviews and adjustments
+- Automation: Continuous discovery and automation of manual processes
+
+## 12. Rollout Timeline
+- v1.0.0 Release from `main` branch: June 30, 2023
+  - Final testing and bug fixes on `release-1.0.0` branch
+  - Merge to `main` and tag as `v1.0.0`
+- Ongoing Development:
+  - Create `develop` branch from `main` after v1.0.0 release
+  - Continue feature development and testing on `develop`
+- Expanded Testing on `main`:
+  - Implement additional integration and performance tests
+  - Conduct thorough regression testing
+  - Address any discovered issues with hotfixes
+- v2.0.0 Release: December 31, 2023
+  - Stabilize `develop` and merge to `main`
+  - Release from `release-2.0.0` branch
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: solti.md
+TITLE: SOLTI - Systems Oriented Laboratory Testing & Integration
+FILENAME: solti.md
+==== CONTENT_START ====
+# SOLTI - Systems Oriented Laboratory Testing & Integration
+
+## Overview
+
+SOLTI provides a comprehensive framework for testing and integrating system components in a controlled environment. The project emphasizes methodical testing, system behavior analysis, and component integration.
+
+## Claude Instructions
+
+This is the goal.
+I want to start on solti-enemble
+I need a recipe that I can repeat in script to build the ansible collection similar to monitoring collection.  (note: this now solti-monitoring in future.)
+Create the  solte-ensemble/verify_output with a .gitignore everything.
+
+The long term goal is the pattern of what makes a solti 'collection' and how far we can go with molecule testing will work. (first we test, then we consolidate)
+
+## Name Origin
+
+- **S**ystems: Managing and testing system-of-systems
+- **O**riented: Structured and purposeful approach
+- **L**aboratory: Controlled testing environment
+- **T**esting: Verification and validation
+- **I**ntegration: Component interconnection and interaction
+
+Named after Sir Georg Solti, renowned for his precise and analytical conducting style.
+
+## Project Structure
+
+This is the ansible galaxy collection structure
+
+```
+jackaltx/
+├── solti/monitoring/   # System monitoring and metrics collection
+├── solti/conductor/    # Proxmox management and orchestration
+├── solti/ensemble/     # Support tools and shared utilities
+└── solti/score/       # Documentation and playbooks
+```
+
+This is the logical repository structure on github
+
+```
+jackaltx/
+├── solti-monitoring/   # System monitoring and metrics collection
+├── solti-conductor/    # Proxmox management and orchestration
+├── solti-ensemble/     # Support tools and shared utilities
+└── solti-score/       # Documentation and playbooks
+```
+
+### solti-monitoring
+
+Current implementation includes:
+
+- Metrics collection (Telegraf)
+- Time-series storage (InfluxDB)
+- Log aggregation (Loki)
+- OpenTelemetry collection (Alloy)
+- Shared configurations and utilities
+
+### solti-conductor (TBD)
+
+Planned features:
+
+- Proxmox VM management
+- Resource orchestration
+- Configuration management
+- Deployment automation
+
+### solti-ensemble (Starting)
+
+Current implementation includes:
+
+- Mariadb (MySQL)
+- HashiVault (InfluxDB)
+- Automated Certificate Management Environment (ACME)
+
+Planned features:  (not now)
+
+- NFS client management
+- Common system configurations
+- Shared security policies
+- Cross-component utilities
+
+### solti-score (TBD)
+
+Documentation and playbooks:
+
+- Architecture documentation
+- Implementation guides
+- Integration patterns
+- Best practices
+
+## Testing Philosophy
+
+- Emphasis on controlled environments
+- Systematic behavior analysis
+- Component isolation capability
+- Integration validation
+- Performance measurement
+
+## Key Features
+
+- Comprehensive monitoring
+- Automated testing
+- System integration
+- Behavior analysis
+- Performance metrics
+- Log aggregation
+- Configuration management
+
+## Technology Stack
+
+Current components:
+
+- Ansible for automation
+- Molecule for testing
+- InfluxDB for metrics
+- Loki for logs
+- Telegraf for collection
+- Alloy for OpenTelemetry
+- Proxmox for virtualization
+
+## Development Guidelines
+
+- Modular design
+- Clear separation of concerns
+- Comprehensive testing
+- Documented interfaces
+- Version controlled components
+- Consistent naming conventions
+
+## Testing Methodology
+
+- Unit testing with Molecule
+- Integration testing across components
+- Performance validation
+- Behavior verification
+- Security validation
+
+## Deployment
+
+- Automated via Ansible
+- Environment-specific configurations
+- Version-controlled deployments
+- Rollback capabilities
+- Monitoring integration
+
+## Security Considerations
+
+- Component isolation
+- Access control
+- Secure communications
+- Audit logging
+- Compliance validation
+
+## Future Directions
+
+- PCAP analysis integration
+- Extended system feeders
+- Enhanced automation
+- Additional monitoring capabilities
+- Extended testing frameworks
+
+## Contributing
+
+TBD:
+
+- Contribution guidelines
+- Code review process
+- Testing requirements
+- Documentation standards
+- Version control workflow
+
+## License
+
+TBD
+
+## Contact
+
+TBD
+
+## Acknowledgments
+
+- Sir Georg Solti - Name inspiration
+- Open source community
+- Project contributors
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: artifacts/grafana-alloy/Alloy-role-instructions.md
+TITLE: Alloy Ansible Role
+FILENAME: Alloy-role-instructions.md
+==== CONTENT_START ====
+# Alloy Ansible Role
+
+## Overview
+
+This Ansible role installs and configures [Grafana Alloy](https://grafana.com/docs/alloy/latest/), a vendor-neutral distribution of the OpenTelemetry (OTel) Collector that provides a unified way to collect and process observability data from various sources and forward it to different backends.
+
+Alloy streamlines the collection of logs, metrics, and traces with consistent configuration across multiple observability signals. This role primarily focuses on log collection and forwarding to Loki, but is extensible for other use cases.
+
+## Features
+
+- Installs and configures Alloy from official Grafana repositories
+- Manages Alloy service lifecycle (start/stop/restart)
+- Configures log sources including systemd journal, files, and application logs
+- Configures multiple pipelines for custom log processing
+- Supports sending data to multiple Loki endpoints
+- Includes utility scripts for easy deployment and verification
+- Includes pre-configured templates for common applications:
+  - Apache web server
+  - Fail2ban
+  - Bind9 DNS server
+  - Mail services (Postfix/Dovecot)
+  - WireGuard VPN
+  - Gitea
+  - ISPConfig
+
+## Requirements
+
+### Platform Support
+
+- Debian/Ubuntu systems (using `apt` package manager)
+- RedHat-based systems (Rocky Linux, RHEL) via shared configuration
+- Systemd-based systems
+
+### Prerequisites
+
+- Systemd-based operating system
+- Network connectivity to Loki endpoint(s)
+- Grafana package repository access
+
+## Role Variables
+
+### Main Control Variables
+
+```yaml
+# Installation state
+alloy_state: "present"                # Use 'absent' to remove Alloy
+
+# Service configuration
+alloy_custom_args: "--disable-reporting --server.http.listen-addr=0.0.0.0:12345"
+
+# Configuration path
+alloy_config: "/etc/alloy/config.alloy"
+
+# Uninstallation options
+alloy_delete_config: false            # Remove config files on uninstall
+alloy_delete_data: false              # Remove data files on uninstall
+```
+
+### Endpoint Configuration
+
+```yaml
+# Loki endpoints - REQUIRED
+alloy_loki_endpoints:
+  - label: localhost                  # Label for the endpoint (used in configuration)
+    endpoint: "127.0.0.1"            # Loki server IP/hostname
+```
+
+### Log Source Configuration
+
+```yaml
+# Enable specific log collection modules
+alloy_monitor_apache: false           # Apache logs
+alloy_monitor_ispconfig: false        # ISPConfig logs
+alloy_monitor_fail2ban: false         # Fail2ban logs
+alloy_monitor_mail: false             # Mail server logs
+alloy_monitor_bind9: false            # Bind9 logs
+alloy_monitor_wg: false               # WireGuard logs
+alloy_monitor_gitea: false            # Gitea logs
+```
+
+## Installation
+
+The role uses the official Grafana package repositories to install Alloy. It also configures the systemd service and manages necessary directories with appropriate permissions.
+
+## Configuration
+
+The role takes a template-based approach to configuration, allowing you to easily enable or disable specific log collection modules based on your needs. The main configuration file is generated from templates that include:
+
+1. Core configuration for log processing
+2. Specific log sources based on enabled modules
+3. Output configuration for Loki endpoints
+
+## Usage Examples
+
+### Basic Installation
+
+```yaml
+- hosts: servers
+  roles:
+    - role: alloy
+      vars:
+        alloy_loki_endpoints:
+          - label: local_loki
+            endpoint: "127.0.0.1"
+```
+
+### Using the Utility Scripts
+
+The included utility scripts make deploying and managing Alloy simpler:
+
+```bash
+# Deploy Alloy using the management script
+./manage-svc alloy deploy
+
+# Verify Alloy is working correctly
+./svc-exec alloy verify
+
+# Deploy to a specific host
+./manage-svc -h monitoring01 alloy deploy
+```
+
+### Comprehensive Configuration
+
+```yaml
+- hosts: web_servers
+  roles:
+    - role: alloy
+      vars:
+        alloy_loki_endpoints:
+          - label: main_loki
+            endpoint: "loki.example.com"
+          - label: backup_loki
+            endpoint: "backup-loki.example.com"
+        
+        # Enable specific log collection
+        alloy_monitor_apache: true
+        alloy_monitor_fail2ban: true
+        
+        # Custom listening address
+        alloy_custom_args: "--disable-reporting --server.http.listen-addr=0.0.0.0:3100"
+```
+
+### Removal Configuration
+
+```yaml
+- hosts: servers
+  roles:
+    - role: alloy
+      vars:
+        alloy_state: 'absent'
+        alloy_delete_config: true
+        alloy_delete_data: true
+```
+
+## Log Processing Capabilities
+
+### Journal Processing
+
+Alloy is configured to collect logs from the systemd journal with enriched metadata:
+
+- Priority levels
+- Unit information
+- Transport metadata
+- Hostname labels
+
+### File-Based Log Processing
+
+The role can process various log files with specialized parsing:
+
+**Apache Logs:**
+
+- Access logs with detailed request information
+- Error logs with enhanced error categorization
+- ModSecurity integration
+- PHP error parsing
+
+**Bind9 DNS Logs:**
+
+- Zone operations
+- Query information
+- DNSSEC operations
+- Transfer logs
+- Security events
+
+**Fail2ban Logs:**
+
+- Jail information
+- Action categorization
+- Ban/Unban events
+
+**Mail Server Logs:**
+
+- Authentication events
+- Connection information
+- Delivery status
+- Error tracking
+
+**WireGuard Logs:**
+
+- Connection establishment
+- Peer activity
+- Handshake information
+- Error tracking
+
+### Advanced Parsing Features
+
+- Multi-line log support
+- Regular expression-based field extraction
+- Label enrichment
+- Filtering and dropping of noisy events
+- Error categorization
+- Security incident tracking
+
+## Directory Structure
+
+```
+alloy/
+├── defaults/
+│   └── main.yml                 # Default variables
+├── files/
+│   ├── apache-error.alloy       # Example configurations
+│   ├── claude-two-outputs.alloy
+│   └── grafana.list
+├── handlers/
+│   └── main.yml                # Service handlers
+├── meta/
+│   └── main.yml               # Role metadata
+├── molecule/                  # Testing configuration
+├── tasks/
+│   ├── main.yml              # Main tasks
+│   └── verify.yml            # Verification tasks
+├── templates/
+│   ├── client-config-alloy.j2  # Main template
+│   ├── etc-default-alloy.j2    # Environment configuration
+│   ├── apache-logs.alloy.j2    # Module templates
+│   ├── fail2ban.alloy.j2
+│   └── ...                     # Other module templates
+└── README.md                   # This file
+```
+
+## Handlers
+
+The role includes the following handlers:
+
+- `Restart alloy`: Restarts the Alloy service when configuration changes
+
+## Testing
+
+The role includes Molecule tests for:
+
+- Basic installation
+- Configuration verification
+- Service status checks
+- Log collection functionality
+
+## Security Considerations
+
+- The role configures Alloy with appropriate file permissions
+- Service runs as its own user
+- Configuration is validated before restarting the service
+- Label filtering to remove sensitive information
+- Optional dropping of connection data for privacy
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Service fails to start**
+   - Check logs with `journalctl -u alloy`
+   - Verify configuration with `alloy --config.file /etc/alloy/config.alloy --config.expand-env --config.check`
+   - Use the verification script: `./svc-exec alloy verify`
+
+2. **No logs being collected**
+   - Verify Loki endpoint is correct and accessible
+   - Check network connectivity to Loki endpoint
+   - Verify file paths and permissions
+   - Use `./svc-exec alloy verify1` for deeper connection checks
+
+3. **High CPU/memory usage**
+   - Check for excessive log volume
+   - Verify filtering is properly configured
+   - Consider increasing system resources
+
+4. **Need to quickly reinstall the service**
+   - Use the management script: `./manage-svc alloy remove && ./manage-svc alloy deploy`
+
+5. **Connection to Loki failing**
+   - Verify network connectivity: `ss -ntp '( dst = :3100 )'`
+   - Check Loki service is running properly
+   - Use `./svc-exec -K alloy verify` to run comprehensive checks
+
+## License
+
+MIT
+
+## Utility Scripts
+
+This role can be easily managed using the following utility scripts included in the project:
+
+### manage-svc.sh
+
+This script helps manage service deployment states using dynamically generated Ansible playbooks.
+
+```bash
+Usage: manage-svc [-h HOST] <service> <action>
+
+Options:
+  -h HOST    Target host from inventory (default: uses hosts defined in role)
+
+Services:
+  - loki
+  - alloy
+  - influxdb
+  - telegraf
+
+Actions:
+  - prepare
+  - deploy
+  - install  # Alias for deploy
+  - remove
+```
+
+**Examples:**
+
+```bash
+# Deploy Alloy to default hosts
+./manage-svc alloy deploy
+
+# Remove Alloy from a specific host
+./manage-svc -h monitoring01 alloy remove
+
+# Install Influxdb on a specific host
+./manage-svc -h dbserver01 influxdb install
+```
+
+### svc-exec.sh
+
+This script executes specific tasks within a role for targeted operations like verification, configuration, or testing.
+
+```bash
+Usage: svc-exec [-K] [-h HOST] <service> [entry]
+
+Options:
+  -K        - Prompt for sudo password (needed for some operations)
+  -h HOST   - Target specific host from inventory
+
+Parameters:
+  service   - The service to manage
+  entry     - The entry point task (default: verify)
+
+Services:
+  - loki
+  - alloy
+  - influxdb
+  - telegraf
+  
+Common Entry Points:
+  - verify     - Basic service verification
+  - configure  - Configure service
+  - verify1    - Additional verification tasks
+```
+
+**Examples:**
+
+```bash
+# Run verification tasks for Alloy on default hosts
+./svc-exec alloy verify
+
+# Run specific verification task on a particular host
+./svc-exec -h monitoring01 alloy verify1
+
+# Configure Alloy with sudo privileges
+./svc-exec -K alloy configure
+```
+
+These scripts provide a convenient way to manage the lifecycle and perform specific operations on the Alloy role and other related services without having to manually create playbooks.
+
+## Author Information
+
+Created by Jack Lavender with assistance from Anthropic's Claude. Extended by the community.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: artifacts/grafana-alloy/README.md
+TITLE: Grafana Alloy Role
+FILENAME: README.md
+==== CONTENT_START ====
+# Grafana Alloy Role
+
+## Overview
+
+This Ansible role streamlines the deployment and configuration of Grafana Alloy, a unified observability agent that collects and processes logs from various sources before forwarding them to Loki for storage and analysis.
+
+When designing effective log collection systems, I approach the problem through the lens of the 5Vs of data:
+
+- **Volume**: Collecting only what matters, reducing storage requirements
+- **Velocity**: Handling high throughput without overwhelming downstream systems
+- **Variety**: Processing diverse log formats from multiple applications consistently
+- **Veracity**: Ensuring accuracy through structured parsing and labeling
+- **Value**: Extracting actionable insights by filtering noise and highlighting signals
+
+Alloy's local collection and processing capabilities address these dimensions by intelligently filtering background noise and enriching logs with meaningful context before they reach centralized storage. This approach significantly improves the signal-to-noise ratio and makes the entire observability stack more effective.
+
+## Why This Matters
+
+Traditional log collection often results in:
+
+- Overwhelming volumes of unstructured data
+- Difficulty identifying important signals from noise
+- Storage inefficiency from redundant logs
+
+Alloy solves these problems by:
+
+- Structured log processing with intelligent parsing
+- Label-based classification for improved searchability
+- Filtering of noisy events
+- Efficient multi-destination forwarding
+
+## Key Features
+
+- **Simplified deployment** via Ansible with utility scripts for management
+- **Modular configuration** for common applications (Apache, Fail2ban, Bind9, mail services)
+- **Smart processing** with regex-based field extraction and label enrichment
+- **Multi-endpoint support** for sending logs to different Loki instances
+
+## Quick Start
+
+```bash
+# Deploy Alloy with basic configuration
+./manage-svc alloy deploy
+
+# Verify Alloy is working correctly
+./svc-exec alloy verify
+```
+
+## Configuration
+
+The inventory file controls which log sources are monitored:
+
+```yaml
+hosts:
+  webserver:
+    alloy_monitor_apache: true
+    alloy_monitor_fail2ban: true
+    
+    alloy_loki_endpoints:
+      - label: "loki.example.com"
+        endpoint: "192.168.1.10"
+```
+
+## Supporting Materials
+
+- **[Full Documentation](artifacts/Alloy-role-instructions.md)** - Comprehensive guide to all features
+- **[Configuration Examples](artifacts/alloy-examples/)** - Sample configurations for different scenarios
+- **[Monitoring Dashboard](artifacts/alloy-dashboard.png)** - Screenshot of Grafana dashboard using Alloy-collected data
+
+## Learn More
+
+For complete usage and configuration details, see the [Full Documentation](artifacts/Alloy-role-instructions.md).
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: artifacts/security-assessment-work/SecurityReport-generic-ispconfig.md
+TITLE: Production Web Hosting Server: Security and Configuration Assessment
+FILENAME: SecurityReport-generic-ispconfig.md
+==== CONTENT_START ====
+# Production Web Hosting Server: Security and Configuration Assessment
+
+**Server:** angela.example.com (hostname: angela)  
+**IP Address:** 50.116.###.### (public), 10.#.#.1 (private)  
+**Date:** March 22, 2025  
+**Assessment Type:** Configuration and Security Analysis  
+
+## Executive Summary
+
+This assessment evaluates a mature production web hosting environment running ISPConfig on Debian 11 (Bullseye). The server hosts multiple websites and domains, provides extensive PHP version compatibility (PHP 5.6 through 8.4), and offers additional services including Git repository hosting. The system demonstrates proper security implementations, with active firewall, comprehensive fail2ban configurations, and TLS enforcement across all services. The server has been operational for an extended period (17+ weeks uptime) and shows evidence of active client usage with 13 configured virtual hosts and 14 DNS zones.
+
+## 1. System Information and Configuration
+
+### 1.1 System Details
+
+| Component | Information |
+|-----------|-------------|
+| Hostname | angela |
+| FQDN | angela.example.com |
+| Operating System | Debian 11 (Bullseye) |
+| Kernel | 5.10.0-33-amd64 |
+| CPU | AMD EPYC 7713 64-Core Processor |
+| Memory | 3.8 GB |
+| Disk | 79 GB (46% used) |
+| Uptime | 17 weeks, 3 days, 5 hours, 56 minutes |
+| Control Panel | ISPConfig 3.2.12p1 |
+
+### 1.2 Network Configuration
+
+| Component | Details |
+|-----------|---------|
+| Primary Public IP | 50.116.###.###/24 |
+| Private IP | 10.#.#.1/24 |
+| IPv6 Support | Enabled |
+| Open Ports | HTTP(S), Mail, DNS, SSH, FTP |
+
+### 1.3 Hosted Services
+
+| Service | Purpose | Status |
+|---------|---------|--------|
+| Web Hosting | Apache with 13 virtual hosts | Active |
+| Email | Postfix/Dovecot with spam protection | Active |
+| DNS | BIND with 14 zones | Active |
+| FTP | Pure-FTPd with TLS | Active |
+| Database | MariaDB (8 databases) | Active |
+| Git Hosting | Gitea on port 3000 | Active |
+| Monitoring | Telegraf agent | Active |
+| Observability | Alloy (port 12345) | Active |
+
+## 2. Security Assessment
+
+### 2.1 Perimeter Security
+
+| Control | Status | Notes |
+|---------|--------|-------|
+| Firewall | ACTIVE | UFW properly configured with specific rules |
+| Intrusion Prevention | STRONG | 23 fail2ban jails configured for all key services |
+| Service Exposure | CONTROLLED | Only necessary ports open |
+| TLS Configuration | SECURE | Insecure protocols (SSLv2/3) disabled |
+
+### 2.2 Authentication and Access Controls
+
+| Control | Status | Notes |
+|---------|--------|-------|
+| SSH Access | SECURE | Protected by fail2ban |
+| FTP Access | SECURE | TLS enabled, protected by fail2ban |
+| Web Applications | MONITORED | Custom fail2ban rules for WordPress and phpMyAdmin |
+| Email Authentication | BASIC | Only PLAIN authentication mechanism enabled |
+
+### 2.3 Malware and Threat Protection
+
+| Control | Status | Notes |
+|---------|--------|-------|
+| Antivirus | ACTIVE | ClamAV running (using 34.6% of memory) |
+| Spam Filtering | LAYERED | Rspamd, RBL checks via Spamhaus, custom restrictions |
+| Brute Force Protection | COMPREHENSIVE | Multiple fail2ban jails with recidive detection |
+| Malicious Bot Protection | ACTIVE | Custom badbots and badbots-jkl fail2ban rules |
+
+## 3. Communications and Network Analysis
+
+### 3.1 IPv6 Configuration
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| IPv6 Addresses | CONFIGURED | Global address (2600:3c00::f03c:93ff:fe51:279d) and link-local addresses |
+| IPv6 Firewall | ACTIVE | UFW and fail2ban properly configured for IPv6 with equivalent rules to IPv4 |
+| IPv6 Services | COMPLETE | All critical services (web, mail, SSH) listening on IPv6 interfaces |
+| DNS over IPv6 | CONFIGURED | BIND listening on both IPv4 and IPv6 addresses |
+
+The server has proper IPv6 configuration with a global address from the 2600:3c00::/32 range (likely Linode), suggesting this is a production server with full IPv6 connectivity. The firewall is appropriately configured with specific rules for IPv6 traffic, including fail2ban integration to block malicious activity.
+
+### 3.2 Service Communication Patterns
+
+| Service | Communication Type | Notes |
+|---------|-------------------|-------|
+| Rspamd | Internal DNS queries | 40+ active DNS lookups for spam filtering |
+| Apache | Proxying to Gitea | Multiple connections to internal Gitea service |
+| IMAP | Active client connections | Multiple external email clients connected |
+| Telegraf | Metrics reporting | Connecting to monitoring endpoint (10.10.0.11:8086) |
+| Alloy | Metrics collection | Internal connection to 10.10.0.11:3100 |
+| PHP-FPM | Unix sockets | All PHP versions using Unix sockets for security |
+| Dovecot | Inter-process | Using sockets for communication between components |
+| SSH | Active session | One active SSH session from 68.116.154.158 |
+
+Analysis of active connections reveals a sophisticated service architecture with proper security practices:
+
+1. **Email Filtering**: Rspamd maintains numerous active DNS queries for real-time spam and malware detection, showing active email traffic processing.
+
+2. **Layered Web Architecture**: Apache proxies to internal Gitea service on localhost:3000, providing secure access to Git repositories without directly exposing Gitea.
+
+3. **Monitoring Infrastructure**: Connections to 10.10.0.11 for metrics reporting indicate a separate monitoring infrastructure on a private network segment.
+
+4. **Security-Focused Configuration**: Use of Unix sockets for internal service communication (PHP-FPM, Dovecot, Redis) rather than TCP sockets improves security by reducing network exposure.
+
+5. **Active Email Usage**: Multiple active IMAP connections from Microsoft email servers (40.99.238.109, 52.96.203.205, 52.96.16.189) indicate the server is actively used for email hosting.
+
+### 3.3 Network Security Observations
+
+| Observation | Security Implication |
+|-------------|---------------------|
+| Active fail2ban | 31+ blocked IPv6 addresses in recidive jail |
+| Private network segment | 10.10.0.0/24 for internal services |
+| Limited listening interfaces | Most services bound to loopback or specific interfaces |
+| Socket usage | Extensive use of Unix sockets reduces network attack surface |
+| Email client connections | Active IMAP sessions from external clients |
+
+The server shows signs of ongoing security protection with numerous blocked IP addresses in the fail2ban recidive jail, indicating persistent attackers that have been successfully blocked. The network architecture employs proper segmentation with internal services isolated on private network segments.
+
+## 4. Hosting Environment Analysis
+
+### 4.1 Web Hosting Configuration
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| Apache Configuration | OPTIMIZED | HTTP/2 enabled, security modules loaded |
+| PHP Support | EXTENSIVE | PHP 5.6 through 8.4 with FPM for versions 5.6-8.2 |
+| SSL Certificates | MANAGED | Let's Encrypt integration via acme.sh |
+| Virtual Hosts | ACTIVE | 13 configured domains |
+
+Hosted Domains:
+
+- XXXXX.com (including ghost.lavweb.com, gitea.lavweb.com)
+- YYY.net
+- jackZZZZZZaltx.com
+- SSSSSSSSSS.com
+- thejuTTTTTnkymonkey.com
+- AAAAAAAAAAAAA0.org
+
+### 3.2 Database Environment
+
+| Aspect | Details |
+|--------|---------|
+| MariaDB Version | 10.5.28 |
+| Total Databases | 8 |
+| Client Databases | 5 customer databases |
+| System Databases | 3 (ISPConfig, phpMyAdmin, Roundcube) |
+
+Client database usage suggests:
+
+- WordPress installations (c1_wp, c2_wpdb)
+- Ghost CMS (c1_ghost)
+- Gitea repository hosting (c1_gitea)
+- Bookstack documentation platform (c1_lavweb_bookstack)
+
+### 3.3 Email Configuration
+
+| Aspect | Details |
+|--------|---------|
+| Mail Hostname | angela.example.com |
+| SMTP Security | TLS enforced, insecure protocols disabled |
+| Spam Protection | Spamhaus RBL, Rspamd |
+| Webmail | Roundcube |
+| IMAP/POP3 | Secured with TLS |
+
+### 3.4 DNS Hosting
+
+| Aspect | Details |
+|--------|---------|
+| BIND Version | 9.16.50 |
+| Total Zones | 14 |
+| Security | Protected by fail2ban rules for refused DNS queries |
+
+Managed domains include:
+
+- JJJJJJJJJ.com, JJJJJJJJJJ.us
+- LLLLLLL.com, example.com
+- SSSSSSSSSS.com, SSSSSSSSSSSSS.org
+- TTTTTTTTTTTTTTT.com
+- VVVVVVVVVVVVVVVVVVVV.com
+- GGGGGGGGGGGGGGGGGGGGG.com
+- MMMMMMM.com
+- LLLLLLLLLLLLL.com
+- DDDDDDDDDDDDDDDDDDDDDD.org
+- AAAAAAAAAAAAAAAAAAAAAAAA.com
+- DDDDDDDDDDDDDDDDDD.com
+
+## 4. Performance and Resource Utilization
+
+### 4.1 Resource Allocation
+
+| Process | CPU Usage | Memory Usage | Purpose |
+|---------|-----------|--------------|---------|
+| Alloy | 2.8% | 3.1% | Observability platform |
+| Telegraf | 0.8% | 1.9% | Metrics collection |
+| Fail2ban | 0.6% | 1.1% | Intrusion prevention |
+| Gitea | 0.1% | 3.3% | Git repository hosting |
+| Redis | 0.1% | 1.4% | In-memory data store |
+| MariaDB | 0.1% | 5.9% | Database server |
+| ClamAV | 0.0% | 34.6% | Antivirus scanning |
+
+### 4.2 Observed Issues
+
+| Issue | Severity | Recommendation |
+|-------|----------|----------------|
+| ClamAV Memory Usage | MEDIUM | Optimize ClamAV configuration to reduce memory footprint |
+| Limited System Memory | LOW | Consider memory upgrade if adding more services or clients |
+| High Process IDs | INFORMATIONAL | Indicative of long runtime; consider regular reboots |
+
+## 5. Vulnerabilities and Recommendations
+
+### 5.1 Critical Findings
+
+*No critical findings identified*
+
+### 5.2 High-Priority Findings
+
+1. **Legacy PHP Versions**
+   - Finding: PHP versions 5.6-7.3 are end-of-life with known security vulnerabilities
+   - Risk: Potential for exploitation of known vulnerabilities in legacy applications
+   - Recommendation: Encourage clients to upgrade to supported PHP versions; isolate legacy applications
+
+### 5.3 Medium-Priority Findings
+
+1. **Email Authentication**
+   - Finding: Dovecot configured to use only PLAIN authentication
+   - Risk: Potential exposure of credentials without stronger authentication methods
+   - Recommendation: Enable additional secure authentication mechanisms
+
+2. **Memory Allocation**
+   - Finding: ClamAV consuming 34.6% of available system memory
+   - Risk: Potential resource constraints during peak usage
+   - Recommendation: Optimize ClamAV configuration or increase system memory
+
+### 5.4 Low-Priority Findings
+
+1. **Monitoring Configuration**
+   - Finding: Monitoring tools (Telegraf, Alloy) consume notable system resources
+   - Risk: Minor performance impact
+   - Recommendation: Review and optimize data collection frequency if needed
+
+## 6. NIST 800-53 Control Compliance Summary
+
+| Control Family | Status | Notable Implementations |
+|----------------|--------|-------------------------|
+| Access Control (AC) | STRONG | Role-based access through ISPConfig, service authentication |
+| Audit & Accountability (AU) | MODERATE | Service logging, but centralized audit unconfirmed |
+| Configuration Management (CM) | STRONG | Consistent configuration across services |
+| Contingency Planning (CP) | UNKNOWN | Backup strategies not evident in assessment |
+| Identification & Authentication (IA) | MODERATE | Authentication present but improvements possible |
+| Incident Response (IR) | MODERATE | Fail2ban provides automated response |
+| Maintenance (MA) | STRONG | Evidence of regular updates (recent package versions) |
+| Media Protection (MP) | UNKNOWN | Not assessed |
+| Physical Protection (PE) | UNKNOWN | Not assessed |
+| Risk Assessment (RA) | MODERATE | Security controls suggest risk awareness |
+| System & Communications Protection (SC) | STRONG | TLS, firewall, and network segmentation |
+| System & Information Integrity (SI) | STRONG | Malware protection, regular updates, monitoring |
+
+## 7. Conclusion
+
+This server represents a mature, production-grade web hosting environment delivering multiple services to various clients. The configuration demonstrates strong security practices with an active firewall, comprehensive intrusion prevention, and proper TLS implementation across all services. The extensive PHP version support (5.6-8.4) indicates a focus on compatibility for diverse client requirements, while additional services like Gitea provide enhanced functionality beyond basic web hosting.
+
+The system has been operational for an extended period (17+ weeks) and shows evidence of active use with multiple virtual hosts, DNS zones, and client databases. While the legacy PHP versions present a security consideration, the overall security posture is robust with layered defenses against common threats.
+
+The server's configuration suggests it is operated by a professional hosting provider (evidenced by the lavweb.com and example.com domains) serving multiple clients with diverse requirements ranging from standard web hosting to specialized applications like Ghost CMS and Bookstack documentation.
+
+---
+
+## Appendix A: Software Bill of Materials (BOM)
+
+### 1. Core Services
+
+| Service Name | Version | Description | Status |
+|--------------|---------|-------------|--------|
+| ISPConfig | 3.2.12p1 | Hosting control panel | Running |
+| MariaDB | 10.5.28 | Database server | Running |
+| Apache | 2.4.62 | Web server | Running |
+| Postfix | 3.5.25 | Mail transfer agent | Running |
+| Dovecot | 2.3.13 | IMAP/POP3 server | Running |
+| Bind9 | 9.16.50 | DNS server | Running |
+| Pure-FTPd | 1.0.49 | FTP server | Running |
+| ClamAV | 1.0.7 | Antivirus engine | Running |
+| Rspamd | 3.11.1 | Email spam filter | Running |
+| Redis | 6.0.16 | In-memory data store | Running |
+| Fail2ban | 0.11.2 | Intrusion prevention | Running |
+| UFW | Debian 11 version | Firewall | Active |
+
+### 2. PHP Environment
+
+| Component | Version | Description | Status |
+|-----------|---------|-------------|--------|
+| PHP | 5.6.40 | Legacy PHP version | FPM Running |
+| PHP | 7.0.33 | Legacy PHP version | FPM Running |
+| PHP | 7.1.33 | Legacy PHP version | FPM Running |
+| PHP | 7.2.34 | Legacy PHP version | FPM Running |
+| PHP | 7.3.33 | Legacy PHP version | FPM Running |
+| PHP | 7.4.33 | Legacy PHP version | FPM Running |
+| PHP | 8.0.30 | PHP version | FPM Running |
+| PHP | 8.1.32 | PHP version | FPM Running |
+| PHP | 8.2.28 | PHP version | FPM Running |
+| PHP | 8.3.19 | PHP version | Installed |
+| PHP | 8.4.5 | PHP version | Installed |
+
+### 3. Web Applications
+
+| Application | Version | Description | Status |
+|-------------|---------|-------------|--------|
+| phpMyAdmin | 5.2.2 | Database management | Installed |
+| Roundcube | 1.4.15 | Webmail client | Installed |
+| Gitea | Latest | Git repository hosting | Running |
+| Ghost | Unknown | Blog platform | Running |
+| WordPress | Unknown | Content management | Multiple instances |
+| Bookstack | Unknown | Documentation platform | Running |
+| acme.sh | 3.1.0 | Let's Encrypt client | Installed |
+
+### 4. Monitoring and Observability
+
+| Tool | Version | Description | Status |
+|------|---------|-------------|--------|
+| Telegraf | Unknown | Metrics collection agent | Running |
+| Alloy | Unknown | Observability platform | Running (port 12345) |
+
+### 5. Security Components
+
+| Component | Description | Status |
+|-----------|-------------|--------|
+| Fail2ban | Intrusion prevention with 23 jails | Active |
+| UFW | Uncomplicated Firewall | Active with configured rules |
+| ClamAV | Antivirus scanning | Active |
+| Rspamd | Spam filtering | Active |
+| Postgrey | Greylisting policy server | Active |
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: artifacts/security-assessment-work/SecurityReport-new-ispconfig.md
+TITLE: ISPConfig Server Security and Configuration Assessment Report
+FILENAME: SecurityReport-new-ispconfig.md
+==== CONTENT_START ====
+# ISPConfig Server Security and Configuration Assessment Report
+
+**Server:** ispconfig.XXXXXXXXXX.org  
+**Date:** March 22, 2025  
+**Assessment Type:** Configuration and Security Analysis  
+
+## Executive Summary
+
+This report presents findings from a comprehensive assessment of the ISPConfig server at ispconfig.a0a0.org. The server is configured as a multi-purpose web hosting environment with a complete stack of services including web, email, database, and FTP capabilities. The assessment indicates this is a recently deployed production environment with proper security controls in place, though some enhancements are recommended to achieve full compliance with NIST 800-53 and CMMC requirements.
+
+## 1. System Identification and Authorization
+
+### 1.1 System Information
+
+| Category | Details |
+|----------|---------|
+| Hostname | ispconfig.XXXXXXXX.org |
+| Operating System | Debian GNU/Linux 12 (Bookworm) |
+| Kernel | 6.1.0-32-amd64 |
+| Control Panel | ISPConfig 3.2.12p1 |
+| System Purpose | Web hosting server |
+
+### 1.2 Authorization Boundary
+
+The server operates as a standalone hosting environment with a primary IP address of 192.168.55.21 on a private network segment. The system is configured to provide multiple services from a single physical or virtual platform.
+
+## 2. Risk Assessment
+
+### 2.1. Primary Services Inventory
+
+| Service | Version | Purpose | Security Status |
+|---------|---------|---------|----------------|
+| Apache | 2.4.62 | Web server | Running with security modules |
+| MariaDB | 10.11.11 | Database | Running with authentication |
+| Postfix | 3.7.11 | Mail transfer | TLS enabled, insecure protocols disabled |
+| Dovecot | 2.3.19.1 | Mail access | TLS enabled |
+| Bind9 | 9.18.33 | DNS server | Running with security features |
+| Pure-FTPd | 1.0.50 | FTP server | TLS enabled |
+| PHP | 8.2.28, 8.3.19, 8.4.5 | Web applications | Multiple versions managed |
+
+### 2.2 Risk Factors
+
+| Risk Factor | Status | Recommendation |
+|-------------|--------|----------------|
+| Unauthorized Access | Partially Mitigated | Firewall is installed but inactive |
+| Malware | Mitigated | ClamAV running with current definitions |
+| Spam/Email Abuse | Mitigated | Rspamd, Postgrey active |
+| Brute Force Attacks | Mitigated | Fail2ban protecting critical services |
+| Data Interception | Mitigated | TLS enabled on all communication services |
+| Privilege Escalation | Partially Assessed | Additional review of user permissions needed |
+
+## 3. Security Controls Assessment (NIST 800-53)
+
+### 3.1 Access Controls (AC)
+
+| Control ID | Description | Status | Notes |
+|------------|-------------|--------|-------|
+| AC-2 | Account Management | Implemented | ISPConfig provides role-based access control |
+| AC-3 | Access Enforcement | Implemented | Services use authentication mechanisms |
+| AC-17 | Remote Access | Partially Implemented | SSH enabled, but additional controls needed |
+| AC-18 | Wireless Access | Not Applicable | No wireless interfaces present |
+
+### 3.2 Audit and Accountability (AU)
+
+| Control ID | Description | Status | Notes |
+|------------|-------------|--------|-------|
+| AU-2 | Audit Events | Partially Implemented | System logging active, but centralized collection not confirmed |
+| AU-8 | Time Stamps | Implemented | NTP service running |
+| AU-9 | Protection of Audit Information | Unknown | Log rotation implemented, but protection not assessed |
+
+### 3.3 Configuration Management (CM)
+
+| Control ID | Description | Status | Notes |
+|------------|-------------|--------|-------|
+| CM-6 | Configuration Settings | Implemented | Standard configurations in place |
+| CM-7 | Least Functionality | Partially Implemented | Services limited to required functionality |
+| CM-8 | Information System Component Inventory | Implemented | Comprehensive BOM documented |
+
+### 3.4 System and Communications Protection (SC)
+
+| Control ID | Description | Status | Notes |
+|------------|-------------|--------|-------|
+| SC-7 | Boundary Protection | Not Implemented | Firewall installed but inactive |
+| SC-8 | Transmission Confidentiality and Integrity | Implemented | TLS enabled on all communication services |
+| SC-12 | Cryptographic Key Establishment and Management | Implemented | SSL certificates managed through ISPConfig |
+| SC-13 | Cryptographic Protection | Implemented | Modern cryptographic protocols in use |
+
+### 3.5 System and Information Integrity (SI)
+
+| Control ID | Description | Status | Notes |
+|------------|-------------|--------|-------|
+| SI-3 | Malicious Code Protection | Implemented | ClamAV active and current |
+| SI-4 | Information System Monitoring | Partially Implemented | Fail2ban active, but comprehensive monitoring not confirmed |
+| SI-7 | Software, Firmware, and Information Integrity | Partially Implemented | Unattended-upgrades enabled for security patches |
+
+## 4. Vulnerabilities and Recommendations
+
+### 4.1 Critical Findings
+
+1. **Inactive Firewall (SC-7)**
+   - Finding: UFW is installed but not active
+   - Recommendation: Enable UFW with rules allowing only necessary services
+   - Priority: High
+
+### 4.2 Significant Findings
+
+1. **Resource Allocation (Performance Risk)**
+   - Finding: ClamAV using 34.7% of available memory
+   - Recommendation: Adjust ClamAV configuration to optimize memory usage
+   - Priority: Medium
+
+2. **Authentication Mechanisms (IA-5)**
+   - Finding: Dovecot using only PLAIN authentication
+   - Recommendation: Enable additional secure authentication methods
+   - Priority: Medium
+
+### 4.3 Advisory Findings
+
+1. **Default Configurations**
+   - Finding: Server appears to be using default configurations
+   - Recommendation: Review and customize configurations for production use
+   - Priority: Low
+
+2. **System Resource Monitoring**
+   - Finding: No evidence of resource monitoring tools
+   - Recommendation: Implement monitoring for resource utilization and service availability
+   - Priority: Low
+
+## 5. CMMC 2.0 Compliance Status
+
+### Level 1 (Foundational)
+
+| Practice | Status | Notes |
+|----------|--------|-------|
+| Access Control | Mostly Compliant | Authentication in place, least privilege not fully assessed |
+| Identification and Authentication | Compliant | Proper identification mechanisms in place |
+| Media Protection | Not Assessed | Beyond scope of current review |
+| Physical Protection | Not Assessed | Beyond scope of current review |
+| System and Communications Protection | Partially Compliant | Encryption in place, boundary protection inactive |
+| System and Information Integrity | Mostly Compliant | Malware protection active, updates enabled |
+
+### Level 2 (Advanced)
+
+| Practice | Status | Notes |
+|----------|--------|-------|
+| Awareness and Training | Not Assessed | Beyond scope of current review |
+| Audit and Accountability | Partially Compliant | Logging in place, comprehensive auditing not confirmed |
+| Configuration Management | Mostly Compliant | Baseline configurations established |
+| Incident Response | Not Assessed | Beyond scope of current review |
+| Maintenance | Partially Compliant | Update mechanisms in place |
+| Personnel Security | Not Assessed | Beyond scope of current review |
+| Risk Assessment | Partially Assessed | Initial assessment performed |
+| Security Assessment | In Progress | Current assessment contributes to this practice |
+
+## 6. Conclusion
+
+The ISPConfig server appears to be a recently deployed web hosting environment with a comprehensive set of services. The server implementation follows industry best practices with security measures in place for most critical components. However, several security enhancements are needed to achieve full compliance with NIST 800-53 and CMMC requirements, most notably the activation of the firewall.
+
+The server is configured to host multiple websites, email domains, and databases, making it suitable for small business or commercial web hosting purposes. The current state indicates it is ready for production use after addressing the recommendations in this report.
+
+---
+
+## Appendix A: Software Bill of Materials (BOM)
+
+### 1. Core Services
+
+| Service Name | Version | Description | Status |
+|--------------|---------|-------------|--------|
+| ISPConfig | 3.2.12p1 | Hosting control panel | Running |
+| MySQL/MariaDB | 10.11.11 | Database server | Running |
+| Apache | 2.4.62 | Web server | Running |
+| Postfix | 3.7.11 | Mail transfer agent | Running |
+| Dovecot | 2.3.19.1 | IMAP/POP3 server | Running |
+| Bind9 | 9.18.33 | DNS server | Running |
+| Pure-FTPd | 1.0.50 | FTP server | Running |
+| ClamAV | 1.0.7 | Antivirus engine | Running |
+| Rspamd | 3.11.1 | Email spam filter | Running |
+| Redis | 7.0.15 | In-memory data store | Running |
+| Fail2ban | 1.0.2 | Intrusion prevention | Running |
+| UFW | Latest from Debian 12 | Firewall | Installed but inactive |
+
+### 2. PHP Environment
+
+| Component | Version | Description | Usage |
+|-----------|---------|-------------|-------|
+| PHP | 8.2.28 | Server-side scripting | Web applications |
+| PHP | 8.3.19 | Server-side scripting | Web applications |
+| PHP | 8.4.5 | Server-side scripting | Not actively used by PHP-FPM |
+| PHP-FPM | 8.2, 8.3 | FastCGI Process Manager | Web application handling |
+
+### 3. Web Applications
+
+| Application | Version | Description | Depends On |
+|-------------|---------|-------------|------------|
+| phpMyAdmin | 5.2.2 | MySQL/MariaDB administration | Apache, PHP, MySQL |
+| Roundcube | 1.6.5 | Webmail client | Apache, PHP, MySQL |
+| acme.sh | 3.1.0 | Let's Encrypt client | Apache |
+
+### 4. Tools and Utilities
+
+| Tool | Version | Description | Related Services |
+|------|---------|-------------|------------------|
+| AWStats | Latest from Debian 12 | Web analytics | Apache |
+| GoAccess | Latest from GoAccess repo | Real-time web log analyzer | Apache |
+| AWffull | Latest from Debian 12 | Web analytics (Webalizer replacement) | Apache |
+| Jailkit | Latest from Debian 12 | Chroot jail | Security |
+| Unattended-upgrades | Latest from Debian 12 | Automatic updates | System maintenance |
+| Memcached | Latest from Debian 12 | Memory caching system | PHP applications |
+
+### 5. Security Components
+
+| Component | Description | Protects |
+|-----------|-------------|----------|
+| Fail2ban | Intrusion prevention by blocking IPs | SSH, FTP, Mail, Web services |
+| UFW | Uncomplicated Firewall (inactive) | All network services |
+| ClamAV | Antivirus scanning | Email, file uploads |
+| Rspamd | Spam filtering, DKIM, SPF, DMARC | Email |
+| Postgrey | Greylisting policy server | Email |
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: artifacts/security-assessment-work/software-bom-template.md
+TITLE: Software Bill of Materials (BOM)
+FILENAME: software-bom-template.md
+==== CONTENT_START ====
+# Software Bill of Materials (BOM)
+
+## 1. Service Inventory
+
+| Service Name | Version | Description | Deployment Location | Owner/Team | Status |
+|--------------|---------|-------------|---------------------|------------|--------|
+| Service A    | 1.2.3   | User authentication service | AWS EC2 | Auth Team | Production |
+| Service B    | 2.0.1   | Payment processing | GCP Kubernetes | Payments Team | Production |
+| Service C    | 0.9.5   | Inventory management | On-prem VM | Inventory Team | Development |
+
+## 2. Non-Service Components
+
+### Libraries and Frameworks
+| Name | Version | License | Used By (Services) | Purpose |
+|------|---------|---------|-------------------|---------|
+| Spring Boot | 2.7.0 | Apache 2.0 | Service A, Service B | Application framework |
+| React | 18.2.0 | MIT | Service C (Frontend) | UI framework |
+| Lodash | 4.17.21 | MIT | Service C (Frontend) | JavaScript utility library |
+
+### Databases
+| Name | Version | Type | Used By (Services) | Purpose |
+|------|---------|------|-------------------|---------|
+| PostgreSQL | 14.5 | SQL | Service A | User data storage |
+| MongoDB | 5.0.9 | NoSQL | Service B | Transaction data |
+| Redis | 7.0.4 | In-memory | Service A, Service B | Caching layer |
+
+### Infrastructure Components
+| Name | Version | Type | Used By (Services) | Purpose |
+|------|---------|------|-------------------|---------|
+| NGINX | 1.22.0 | Web Server | All services | Load balancing |
+| RabbitMQ | 3.10.7 | Message Broker | Service B, Service C | Async communication |
+| Elasticsearch | 8.4.0 | Search Engine | Service C | Search functionality |
+
+### Third-Party APIs
+| Name | Version | Provider | Used By (Services) | Purpose |
+|------|---------|----------|-------------------|---------|
+| Stripe API | v2022-08-01 | Stripe | Service B | Payment processing |
+| Google Maps API | v3 | Google | Service C | Location services |
+
+## 3. Relationship Mapping
+
+### Service Dependencies
+```
+Service A → Service B: User verification for payments
+Service B → Service C: Inventory availability check
+```
+
+### Service to Non-Service Relationships
+```
+Service A → PostgreSQL: Stores user data
+Service A → Redis: Session caching
+Service B → MongoDB: Transaction storage
+Service B → Stripe API: Payment processing
+Service C → Elasticsearch: Product search
+```
+
+### Data Flow Diagram (High-Level)
+```
+[Users] → [Service A] → [Service B] → [Stripe API]
+                     ↓
+                [Service C] → [MongoDB]
+```
+
+## 4. Security and Compliance Information
+
+### Vulnerability Tracking
+| Component | Known Vulnerabilities | Patch Status | Risk Level |
+|-----------|----------------------|--------------|------------|
+| Spring Boot 2.7.0 | CVE-2022-xxxx | Patched | Low |
+| PostgreSQL 14.5 | None known | N/A | Low |
+
+### Compliance Requirements
+| Service | Compliance Standards | Last Audit Date | Status |
+|---------|---------------------|-----------------|--------|
+| Service A | GDPR, SOC2 | 2022-06-15 | Compliant |
+| Service B | PCI DSS, SOC2 | 2022-07-20 | Compliant |
+
+## 5. Change Management
+
+### Recent Updates
+| Date | Component | Change Description | Change Owner |
+|------|-----------|-------------------|--------------|
+| 2022-08-10 | Service B | Updated to v2.0.1 - Fixed payment timeout issue | Payments Team |
+| 2022-08-05 | MongoDB | Upgraded from 5.0.8 to 5.0.9 | Ops Team |
+
+### Planned Updates
+| Target Date | Component | Planned Change | Owner |
+|-------------|-----------|---------------|-------|
+| 2022-09-15 | Service A | Upgrade to v1.3.0 | Auth Team |
+| 2022-10-01 | NGINX | Upgrade to 1.23.1 | Ops Team |
+
+## 6. Backup and Recovery Information
+| Component | Backup Frequency | Retention Period | Recovery Time Objective |
+|-----------|------------------|-----------------|-------------------------|
+| PostgreSQL | Daily | 30 days | 4 hours |
+| MongoDB | Daily | 30 days | 4 hours |
+| Service Configurations | Weekly | 90 days | 12 hours |
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: artifacts/team/FeatureDevelopment.md
+TITLE: Feature-Based GitHub Development
+FILENAME: FeatureDevelopment.md
+==== CONTENT_START ====
+# Feature-Based GitHub Development
+
+## Definition
+Feature-based development is a software development approach where work is organized around specific, discrete features or user stories. In the GitHub context, this means creating a dedicated branch for each new feature, developing it in isolation, and then merging it back into the main branch through a pull request.
+
+## Key Components
+1. **Feature Branches**
+   - Each new feature gets its own dedicated branch
+   - Branches are typically named descriptively (e.g., `feature/user-authentication` or `feature/payment-integration`)
+   - Isolated development environment for specific functionality
+
+2. **Pull Request Workflow**
+   - Developers create a pull request to merge their feature branch into the main branch
+   - Enables code review, discussion, and collaborative refinement
+   - Provides a mechanism for quality control and knowledge sharing
+
+## Pros of Feature-Based Development
+- **Isolation**: Prevents unfinished or experimental code from disrupting the main codebase
+- **Parallel Development**: Multiple team members can work on different features simultaneously
+- **Code Quality**: Facilitates thorough code reviews through pull requests
+- **Traceability**: Clear link between features, branches, and implemented functionality
+- **Easier Rollback**: Can remove or revert specific features without affecting entire project
+- **Collaboration**: Enables detailed discussions about specific implementation details
+
+## Cons of Feature-Based Development
+- **Overhead**: Managing multiple branches can become complex
+- **Merge Conflicts**: Increased risk of conflicts when merging multiple feature branches
+- **Branch Management**: Requires disciplined branching and merging strategies
+- **Potential Staleness**: Long-running feature branches can become outdated
+- **Performance Overhead**: More Git operations and branch tracking
+
+## Best Practices and Standards
+1. **Branching Conventions**
+   - Use consistent naming patterns
+   - Prefix branches with `feature/`, `bugfix/`, `hotfix/`
+   - Keep branch names short, descriptive, and lowercase
+   - Use hyphen separation (e.g., `feature/user-profile-update`)
+
+2. **Pull Request Guidelines**
+   - Provide clear, descriptive titles
+   - Include detailed description of changes
+   - Link to relevant issues or tickets
+   - Ensure code passes all automated tests
+   - Obtain required number of approvals
+
+3. **Branch Protection Rules**
+   - Require pull request reviews
+   - Enforce status checks (CI/CD)
+   - Prevent direct commits to main branches
+   - Require up-to-date branches before merging
+
+## Measuring Compliance and Effectiveness
+
+### Quantitative Metrics
+1. **Branch Management**
+   - Number of active feature branches
+   - Average branch lifespan
+   - Merge frequency
+   - Branch to main branch ratio
+
+2. **Pull Request Metrics**
+   - Average time to review
+   - Number of comments per pull request
+   - Review completion rate
+   - Merge acceptance rate
+
+3. **Code Quality Indicators**
+   - Test coverage for feature branches
+   - Number of CI/CD pipeline failures
+   - Code review comment density
+   - Time between feature branch creation and merge
+
+### Qualitative Assessment
+- Team adherence to branching conventions
+- Clarity of feature descriptions
+- Effectiveness of code reviews
+- Collaboration quality during pull requests
+
+### Tools for Measurement
+- GitHub Insights
+- Custom scripts analyzing repository metadata
+- Third-party tools like CodeClimate, GitPrime
+- Custom dashboards tracking development metrics
+
+## Implementation Strategy
+1. Define clear branching and merging guidelines
+2. Set up branch protection rules
+3. Create pull request templates
+4. Implement continuous integration
+5. Establish code review protocols
+6. Regularly audit and refine processes
+
+## Potential Challenges and Mitigation
+- **Branch Proliferation**: Implement branch cleanup policies
+- **Merge Conflicts**: Encourage frequent merging from main branch
+- **Review Bottlenecks**: Set clear review expectations and timelines
+- **Knowledge Silos**: Rotate reviewers, encourage cross-team reviews
+
+## Conclusion
+Feature-based GitHub development is a powerful approach to managing software development, offering enhanced collaboration, code quality, and traceability. Success depends on clear guidelines, disciplined implementation, and continuous process improvement.
+
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: artifacts/team/github-team-guide.md
+TITLE: GitHub Team Organization Guide
+FILENAME: github-team-guide.md
+==== CONTENT_START ====
+# GitHub Team Organization Guide
+
+## Overview
+This guide outlines the structure and workflow for managing a small development team (1-10 people) using GitHub, with a focus on testing and security. It establishes clear roles, responsibilities, and processes while maintaining flexibility for team growth.
+
+## Why Feature-Based Development?
+Feature-based development provides several key advantages for team organization:
+
+- **Isolation**: Each feature exists in its own branch, preventing conflicts with other development work
+- **Focus**: Developers can concentrate on specific functionality without being impacted by other changes
+- **Testing**: Features can be thoroughly tested in isolation before integration
+- **Review**: Clear scope makes code reviews more manageable and effective
+- **Rollback**: Problems can be isolated and reverted without affecting other features
+- **Documentation**: Feature branches create natural documentation of development history
+- **Parallel Development**: Multiple features can be developed simultaneously without interference
+
+## Repository Structure
+
+### Branch Organization
+```
+main (protected)
+├── test (semi-protected)
+├── develop (working branch)
+└── feature/* (developer branches)
+```
+
+### Branch Naming Convention
+- Feature branches: `feature/developer-name/feature-description`
+- Bugfix branches: `bugfix/issue-number/brief-description`
+- Hotfix branches: `hotfix/issue-number/brief-description`
+
+## Team Structure
+
+### Team Hierarchy
+```
+Organization
+├── team-admins (Maintainers)
+│   - Can merge to main
+│   - Can configure repository settings
+│   - Review and approve PRs
+│   - Manage team access
+├── team-leads (Write)
+│   - Can merge to test/develop
+│   - Can create feature branches
+│   - Review code
+└── developers (Write)
+    - Can push to test branch
+    - Can create feature branches
+    - Submit PRs
+```
+
+## Required Team Capabilities
+
+### Team Admins (1-2 people)
+- Strong understanding of Git workflow
+- Experience with CI/CD setup
+- Security best practices knowledge
+- Code review experience
+- Team management skills
+
+### Team Leads (1-2 people)
+- Solid coding practices
+- Testing methodology expertise
+- Code review experience
+- Understanding of integration patterns
+- Ability to mentor developers
+
+### Developers
+- Basic Git knowledge
+- Unit testing skills
+- Understanding of PR process
+- Ability to write self-documenting code
+- Collaborative mindset
+
+## Implementation Guide
+
+### 1. Organization Setup
+1. Create organization via GitHub UI
+2. Choose free plan
+3. Configure organization settings
+4. Set up team structure
+
+### 2. Branch Protection Rules
+```
+Settings > Branches > Branch protection rules > Add rule
+- Branch name pattern: main
+- Require pull request reviews
+- Require status checks
+- Include administrators
+```
+
+### 3. Workflow Configuration
+- Enable GitHub Actions for CI/CD
+- Configure required status checks
+- Set up PR templates
+- Enable Dependabot
+- Configure issue templates
+
+## Development Workflow
+
+### Feature Development Process
+1. Create feature branch from develop
+2. Implement feature with tests
+3. Push to test branch for CI/CD
+4. Create PR when ready
+5. Address review comments
+6. Merge to develop after approval
+7. Delete feature branch
+
+### Code Review Requirements
+- No direct pushes to protected branches
+- Minimum one approval from appropriate team level
+- All tests must pass
+- No merge conflicts
+- Branch must be up to date
+- Documentation updated if required
+
+## GitHub Features Utilized
+- Actions (CI/CD) - 2000 minutes/month free
+- Branch protection rules
+- Required status checks
+- Pull request templates
+- Issue templates
+- Automated dependency updates
+- Project boards (optional)
+
+## Security Considerations
+- Branch protection enforced
+- Required reviews
+- Status checks required
+- No direct pushes to main
+- Regular dependency updates
+- Automated security scanning
+- Regular access review
+
+## Best Practices
+- Keep features small and focused
+- Write tests before code when possible
+- Regular commits with clear messages
+- Keep PRs manageable in size
+- Document significant changes
+- Regular communication in PR comments
+- Use issues for tracking work
+
+## Additional Resources
+- GitHub documentation
+- GitHub Actions documentation
+- Team onboarding guides
+- Security best practices
+
+==== CONTENT_END ====

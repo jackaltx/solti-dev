@@ -1,0 +1,3612 @@
+==== FILE_START ====
+PATH: README.md
+TITLE: SOLTI Monitoring Collection
+FILENAME: README.md
+==== CONTENT_START ====
+# SOLTI Monitoring Collection
+
+A comprehensive monitoring ecosystem for modern infrastructure, integrating metrics and log collection using Telegraf, InfluxDB, Alloy, and Loki. This collection provides tested, deployment-ready roles with advanced testing frameworks and utility scripts for seamless operations.
+
+## What is SOLTI?
+
+**S**ystems **O**riented **L**aboratory **T**esting & **I**ntegration (SOLTI) is a suite of Ansible collections designed for defining and testing networked laboratory environments. The project emphasizes methodical testing, system behavior analysis, and component integration to combat entropy and maintain reliable systems.
+
+```
+solti/
+├── solti-monitor/      # System monitoring and metrics collection (this project)
+├── solti-conductor/    # Proxmox management and orchestration
+├── solti-ensemble/     # Support tools and shared utilities
+├── solti-containers/   # Support containers for testing
+└── solti-score/        # Documentation and playbooks
+```
+
+## Architecture Overview
+
+The collection is built around two parallel monitoring pipelines with comprehensive testing frameworks:
+
+### Monitoring Pipelines
+
+#### Metrics Pipeline
+
+- **Telegraf** (Client): Collects system and application metrics
+- **InfluxDB** (Server): Stores time-series metrics data
+- Supports customizable input plugins and multiple output configurations
+
+#### Logging Pipeline
+
+- **Alloy** (Client): Collects and forwards system and application logs
+- **Loki** (Server): Stores and indexes log data
+- Flexible configuration for various log sources and filtering
+
+### Testing Framework
+
+- **Molecule Testing**: Multiple test scenarios for different environments
+  - GitHub CI integration with Podman containers
+  - Proxmox VM testing for full-stack verification
+  - Local development testing with quick feedback loops
+
+- **Verification System**: Multi-level verification tasks for deep testing
+  - Component-level verification
+  - Integration verification across components
+  - System-level verification of the entire stack
+
+- **Utility Scripts**: Purpose-built scripts for efficient operations
+  - `manage-svc.sh`: Service lifecycle management
+  - `svc-exec.sh`: Task-oriented service operations
+  - Integration test runners and reporting tools
+
+## Getting Started
+
+### Prerequisites
+
+- Ansible 2.9 or higher
+- Python 3.6 or higher
+- For local testing:
+  - Podman or Docker (for container-based testing)
+  - Proxmox environment (for VM-based testing)
+- Supported platforms:
+  - Debian 11/12 (primary support)
+  - Rocky Linux 9 (experimental support)
+
+### Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/your-org/solti-monitoring.git
+cd solti-monitoring
+```
+
+2. Install collection dependencies:
+
+```bash
+ansible-galaxy collection install -r requirements.yml
+```
+
+3. Set up testing environment (optional):
+
+```bash
+# For Proxmox testing
+source ./solti-init.sh
+```
+
+## Deployment Patterns
+
+### Quick Deploy with Utility Scripts
+
+```bash
+# Deploy a metrics server
+./manage-svc.sh influxdb deploy
+
+# Deploy a log server
+./manage-svc.sh loki deploy
+
+# Deploy clients to specific hosts
+./manage-svc.sh -h client01 telegraf deploy
+./manage-svc.sh -h client01 alloy deploy
+```
+
+### Complete Stack Deployment
+
+```yaml
+- name: Deploy Monitoring Server
+  hosts: monitoring_servers
+  roles:
+    - role: influxdb
+      vars:
+        influxdb_org: "myorg"
+        influxdb_bucket: "metrics"
+        
+    - role: loki
+      vars:
+        loki_local_storage: true  # For testing/development
+
+- name: Deploy Monitoring Agents
+  hosts: all_servers
+  roles:
+    - role: telegraf
+      vars:
+        telgraf2influxdb_configs:
+          central:
+            url: "http://monitoring.example.com:8086"
+            token: "{{ influxdb_token }}"
+            bucket: "telegraf"
+            org: "myorg"
+            
+    - role: alloy
+      vars:
+        alloy_loki_endpoint: "monitoring.example.com:3100"
+        alloy_monitor_apache: true  # Enable Apache log collection
+```
+
+## Role Documentation
+
+### Server Components
+
+- [InfluxDB](roles/influxdb/README.md) - Time series database for metrics storage
+  - Local and NFS storage options
+  - Token-based authentication
+  - Bucket management
+
+- [Loki](roles/loki/README.md) - Horizontally-scalable log aggregation system
+  - Local filesystem or S3-compatible storage
+  - Label-based indexing
+  - Query optimization
+
+### Client Components
+
+- [Telegraf](roles/telegraf/README.md) - Agent for collecting, processing, and reporting metrics
+  - Multiple input plugin support
+  - Configurable outputs
+  - Low overhead collection
+
+- [Alloy](roles/alloy/README.md) - Log collection agent based on Grafana Alloy
+  - Journal and file source support
+  - Preprocessing and filtering
+  - Multi-target forwarding
+
+### Support Components
+
+- [NFS Client](roles/nfs-client/README.md) - NFS storage support for monitoring components
+  - Optimized mount configurations
+  - Cross-platform support
+
+### Testing Components
+
+- [log_tests](roles/log_tests/README.md) - Verification for log collection stack
+  - Connection testing
+  - Log ingestion verification
+  - Query validation
+
+- [metrics_tests](roles/metrics_tests/README.md) - Verification for metrics collection stack
+  - Service status verification
+  - Data flow validation
+  - Health checks
+
+## Testing Infrastructure
+
+### Molecule Framework
+
+Multiple test scenarios are available for comprehensive verification:
+
+- **GitHub**: CI-focused testing with Podman containers
+  - Quick validation of core functionality
+  - Parallelized component testing
+  - Artifact generation
+
+- **Podman**: Local container-based testing
+  - Rapid development feedback
+  - Multi-distribution testing
+  - Network isolation testing
+
+- **Proxmox**: Full stack VM-based testing
+  - Real-world deployment simulation
+  - Performance testing
+  - Long-running stability tests
+
+### Running Tests
+
+```bash
+# Quick local tests with Podman
+./run-podman-tests.sh
+
+# Complete environment tests with Proxmox
+./run-proxmox-tests.sh
+
+# Integration tests across components
+./run-integration-tests.sh
+
+# Unit tests for individual roles
+./run-unit-tests.sh
+```
+
+### Verification System
+
+The multi-layered verification system provides confidence in the deployment:
+
+1. **Base Level (Level 0)**: Core service functionality
+   - Service running status
+   - Port accessibility
+   - Basic configuration
+
+2. **Integration Level (Level 1)**: Component interaction
+   - Client-server communication
+   - Data flow verification
+   - Authentication validation
+
+3. **Extended Level (Level 2)**: Advanced functionality
+   - Performance metrics
+   - Error handling
+   - Edge case testing
+
+```bash
+# Run verification for Loki
+./svc-exec.sh loki verify
+
+# Run extended verification
+./svc-exec.sh loki verify1
+
+# Run specific tasks
+./svc-exec.sh influxdb backup
+```
+
+## Advanced Configuration
+
+### Storage Configuration
+
+#### InfluxDB Storage Options
+
+```yaml
+# Local storage (default)
+influxdb_data_path: /var/lib/influxdb
+
+# NFS storage
+influxdb_data_path: /mnt/nfs/influxdb
+mount_nfs_share: true
+cluster_nfs_mounts:
+  influxdb:
+    src: "nfs.example.com:/storage/influxdb"
+    path: "/mnt/nfs/influxdb"
+    opts: "rw,noatime,bg"
+    state: "mounted"
+    fstype: "nfs4"
+```
+
+#### Loki Storage Options
+
+```yaml
+# Local storage
+loki_local_storage: true
+
+# S3 storage
+loki_local_storage: false
+loki_endpoint: "s3.example.com"
+loki_s3_bucket: "loki-logs"
+loki_key_id: "ACCESS_KEY_ID"
+loki_access_key: "SECRET_ACCESS_KEY"
+```
+
+### Client Configuration Examples
+
+#### Telegraf with Multiple Outputs
+
+```yaml
+telegraf_outputs: ['central', 'local']
+telgraf2influxdb_configs:
+  central:
+    url: "https://central-monitoring.example.com"
+    token: "{{ central_token }}"
+    bucket: "telegraf"
+    org: "central"
+  local:
+    url: "http://localhost"
+    token: "{{ local_token }}"
+    bucket: "local_metrics"
+    org: "local"
+```
+
+#### Alloy with Advanced Log Collection
+
+```yaml
+alloy_loki_endpoint: "loki.example.com"
+alloy_monitor_apache: true
+alloy_monitor_fail2ban: true
+alloy_monitor_mail: true
+alloy_monitor_bind9: true
+```
+
+## Development and Contributing
+
+### Development Workflow
+
+1. Fork the repository
+2. Set up local testing environment
+3. Make changes and run tests:
+
+   ```bash
+   molecule test -s podman
+   ```
+
+4. Submit a pull request with test results
+
+### Code Organization
+
+```
+solti-monitoring/
+├── roles/                  # Core component roles
+├── molecule/               # Test scenarios
+│   ├── github/             # GitHub CI tests
+│   ├── podman/             # Container tests
+│   ├── proxmox/            # VM tests
+│   └── shared/             # Shared test resources
+├── playbooks/              # Example playbooks
+├── group_vars/             # Variable definitions
+├── *.sh                    # Utility scripts
+└── verify_output/          # Test results
+```
+
+## Known Limitations
+
+1. Operating System Support
+   - Primary support for Debian 11/12
+   - Experimental Rocky Linux 9 support
+   - Other distributions may require adaptation
+
+2. Storage Backends
+   - InfluxDB: Local or NFS storage
+   - Loki: Local or S3-compatible storage
+
+3. Authentication
+   - Basic token authentication implemented
+   - External authentication requires manual configuration
+
+## Troubleshooting
+
+- **Service fails to start**:
+  - Check logs with `journalctl -u <service-name>`
+  - Run verification: `./svc-exec.sh <service-name> verify`
+
+- **Connection issues between components**:
+  - Verify network connectivity
+  - Check port accessibility
+  - Run integration tests: `./run-integration-tests.sh`
+
+- **Data not appearing in queries**:
+  - Verify client configuration
+  - Check authentication tokens
+  - Examine service logs for ingestion errors
+
+## License
+
+MIT License - see the [LICENSE](LICENSE) file for details
+
+## Author Information
+
+Created and maintained by Jack Lavender with significant contributions from Claude (Anthropic). This project represents a collaborative effort combining practical infrastructure expertise with systematic documentation and architectural design.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: claude-backup-idea.md
+TITLE: Backup configuration
+FILENAME: claude-backup-idea.md
+==== CONTENT_START ====
+I'd be happy to help you implement a backup solution for InfluxDB that achieves a similar result to tiered storage. Let's create an Ansible playbook and role extension that will:
+
+1. Back up InfluxDB data to a local temporary directory
+2. Upload those backups to your QNAP S3 bucket
+3. Set up a regular schedule via cron
+
+Here's how we can extend your existing InfluxDB role:
+
+## 1. First, let's add the backup configuration variables to defaults/main.yml
+
+```yaml
+# Backup configuration
+influxdb_backup_enabled: false
+influxdb_backup_schedule: "0 2 * * *"  # Daily at 2AM
+influxdb_backup_retention: 30          # Keep 30 days of backups
+influxdb_backup_path: "/var/backups/influxdb"
+influxdb_backup_s3_enabled: false
+influxdb_backup_s3_bucket: "influx11"
+influxdb_backup_s3_endpoint: "jacknas2.{{ domain }}:8010"
+influxdb_backup_s3_access_key: ""      # Will use environment variables
+influxdb_backup_s3_secret_key: ""      # Will use environment variables
+```
+
+## 2. Create a new backup script template (templates/influxdb-backup.sh.j2)
+
+```bash
+#!/bin/bash
+# InfluxDB backup script
+# Created by Ansible - do not edit manually
+
+# Configuration
+BACKUP_PATH="{{ influxdb_backup_path }}"
+RETENTION_DAYS={{ influxdb_backup_retention }}
+S3_ENABLED={{ influxdb_backup_s3_enabled | lower }}
+S3_BUCKET="{{ influxdb_backup_s3_bucket }}"
+S3_ENDPOINT="{{ influxdb_backup_s3_endpoint }}"
+
+# Environment variables
+{% if influxdb_operators_token != "" %}
+export INFLUX_TOKEN="{{ influxdb_operators_token }}"
+{% endif %}
+{% if influxdb_backup_s3_access_key != "" %}
+export AWS_ACCESS_KEY_ID="{{ influxdb_backup_s3_access_key }}"
+export AWS_SECRET_ACCESS_KEY="{{ influxdb_backup_s3_secret_key }}"
+{% endif %}
+
+# Create backup timestamp
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_DIR="${BACKUP_PATH}/influxdb_${TIMESTAMP}"
+
+# Ensure backup directory exists
+mkdir -p ${BACKUP_DIR}
+
+# Log file
+LOGFILE="${BACKUP_PATH}/backup_${TIMESTAMP}.log"
+
+echo "Starting InfluxDB backup at $(date)" > ${LOGFILE}
+
+# Run the backup command
+echo "Creating backup in ${BACKUP_DIR}..." >> ${LOGFILE}
+
+# Get organization ID
+ORG_ID=$(influx org list --json | jq -r '.[0].id')
+if [ -z "$ORG_ID" ]; then
+    echo "ERROR: Could not determine organization ID" >> ${LOGFILE}
+    exit 1
+fi
+
+# Create the backup
+influx backup ${BACKUP_DIR} --org-id ${ORG_ID} >> ${LOGFILE} 2>&1
+BACKUP_STATUS=$?
+
+if [ $BACKUP_STATUS -eq 0 ]; then
+    echo "Backup completed successfully" >> ${LOGFILE}
+    
+    # Compress the backup
+    echo "Compressing backup..." >> ${LOGFILE}
+    tar -czf ${BACKUP_DIR}.tar.gz -C ${BACKUP_PATH} $(basename ${BACKUP_DIR})
+    rm -rf ${BACKUP_DIR}
+    
+    # Upload to S3 if enabled
+    if [ "${S3_ENABLED}" = "true" ]; then
+        echo "Uploading to S3 bucket ${S3_BUCKET}..." >> ${LOGFILE}
+        
+        # Upload using s3cmd
+        s3cmd put ${BACKUP_DIR}.tar.gz s3://${S3_BUCKET}/influxdb_backups/ \
+            --host=${S3_ENDPOINT} \
+            --host-bucket=${S3_ENDPOINT}/${S3_BUCKET} \
+            --no-ssl >> ${LOGFILE} 2>&1
+            
+        if [ $? -eq 0 ]; then
+            echo "S3 upload completed" >> ${LOGFILE}
+        else
+            echo "ERROR: S3 upload failed" >> ${LOGFILE}
+        fi
+    fi
+    
+    # Clean up old backups
+    echo "Cleaning up backups older than ${RETENTION_DAYS} days..." >> ${LOGFILE}
+    find ${BACKUP_PATH} -name "influxdb_*.tar.gz" -mtime +${RETENTION_DAYS} -delete
+    find ${BACKUP_PATH} -name "backup_*.log" -mtime +${RETENTION_DAYS} -delete
+    
+    echo "Backup process completed at $(date)" >> ${LOGFILE}
+else
+    echo "ERROR: Backup failed with status ${BACKUP_STATUS}" >> ${LOGFILE}
+fi
+```
+
+## 3. Add the backup implementation to tasks/influxdb-backup.yml
+
+```yaml
+---
+# Setup InfluxDB backup tasks
+
+- name: Install required backup tools
+  ansible.builtin.package:
+    name:
+      - s3cmd
+      - jq
+    state: present
+  become: true
+
+- name: Create backup directory
+  ansible.builtin.file:
+    path: "{{ influxdb_backup_path }}"
+    state: directory
+    owner: influxdb
+    group: influxdb
+    mode: "0750"
+  become: true
+
+- name: Create backup script
+  ansible.builtin.template:
+    src: influxdb-backup.sh.j2
+    dest: "/usr/local/bin/influxdb-backup.sh"
+    owner: root
+    group: root
+    mode: "0755"
+  become: true
+
+- name: Configure S3cmd if S3 backup is enabled
+  when: influxdb_backup_s3_enabled | bool
+  ansible.builtin.template:
+    src: s3cfg.j2
+    dest: "/root/.s3cfg"
+    owner: root
+    group: root
+    mode: "0600"
+  become: true
+
+- name: Set up backup cron job
+  ansible.builtin.cron:
+    name: "InfluxDB Backup"
+    job: "/usr/local/bin/influxdb-backup.sh > /dev/null 2>&1"
+    user: root
+    cron_file: influxdb-backup
+    state: "{{ 'present' if influxdb_backup_enabled else 'absent' }}"
+    minute: "{{ influxdb_backup_schedule.split(' ')[0] }}"
+    hour: "{{ influxdb_backup_schedule.split(' ')[1] }}"
+    day: "{{ influxdb_backup_schedule.split(' ')[2] }}"
+    month: "{{ influxdb_backup_schedule.split(' ')[3] }}"
+    weekday: "{{ influxdb_backup_schedule.split(' ')[4] }}"
+  become: true
+```
+
+## 4. Create the S3cmd configuration template (templates/s3cfg.j2)
+
+```
+[default]
+access_key = {{ influxdb_backup_s3_access_key | default('${AWS_ACCESS_KEY_ID}') }}
+secret_key = {{ influxdb_backup_s3_secret_key | default('${AWS_SECRET_ACCESS_KEY}') }}
+host_base = {{ influxdb_backup_s3_endpoint }}
+host_bucket = {{ influxdb_backup_s3_endpoint }}/%(bucket)
+use_https = False
+signature_v2 = True
+```
+
+## 5. Modify the main tasks/main.yml to include the backup functionality
+
+```yaml
+# Add this in the "present" block
+- name: Configure InfluxDB backups
+  ansible.builtin.include_tasks: 
+    file: influxdb-backup.yml
+  when: influxdb_backup_enabled | bool
+```
+
+## 6. Create a test/implementation playbook
+
+```yaml
+---
+- name: Configure InfluxDB with Backups
+  hosts: influxdb_servers
+  become: true
+  
+  vars:
+    # Regular InfluxDB configuration
+    influxdb_state: present
+    influxdb_data_path: "/var/lib/influxdb"
+    influxdb_org: "lavnet"
+    influxdb_bucket: "telegraf"
+    
+    # Backup configuration
+    influxdb_backup_enabled: true
+    influxdb_backup_s3_enabled: true
+    influxdb_backup_s3_bucket: "influx11"
+    influxdb_backup_s3_endpoint: "jacknas2.{{ domain }}:8010"
+    # Credentials from environment variables or vault
+    
+    # Schedule (daily at 3 AM)
+    influxdb_backup_schedule: "0 3 * * *"
+    influxdb_backup_retention: 60  # Keep 60 days of backups
+  
+  roles:
+    - influxdb
+```
+
+This implementation gives you a flexible backup solution that:
+
+1. Creates regular backups on a schedule you define
+2. Automatically uploads them to your QNAP S3 bucket
+3. Handles cleanup of old backups
+4. Can be enabled/disabled via Ansible variables
+
+To test manually, you can run:
+
+```bash
+sudo /usr/local/bin/influxdb-backup.sh
+```
+
+This approach provides a practical alternative to the enterprise tiering feature, giving you a way to archive your InfluxDB data to S3 while managing local storage more efficiently.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: podman-cheatsheet.md
+TITLE: Podman Command Cheatsheet
+FILENAME: podman-cheatsheet.md
+==== CONTENT_START ====
+# Podman Command Cheatsheet
+
+## Container Management
+
+### Basic Operations
+
+```bash
+# List containers
+podman ps                    # List running containers
+podman ps -a                 # List all containers (including stopped)
+podman ps --format "{{.Names}}"  # List just container names
+
+# Container lifecycle
+podman run -d IMAGE         # Run container in background
+podman start CONTAINER      # Start a stopped container
+podman stop CONTAINER       # Stop a running container
+podman restart CONTAINER    # Restart a container
+podman rm CONTAINER        # Remove a container
+podman rm -f CONTAINER     # Force remove a running container
+```
+
+### Container Access
+
+```bash
+# Interactive access
+podman exec -it CONTAINER /bin/bash  # Get shell in container
+podman exec -it -u USER CONTAINER /bin/bash  # Shell as specific user
+podman attach CONTAINER    # Attach to container's main process
+
+# Logs and monitoring
+podman logs CONTAINER      # View container logs
+podman logs -f CONTAINER   # Follow container logs
+podman top CONTAINER      # Show running processes in container
+```
+
+### Container Information
+
+```bash
+# Detailed information
+podman inspect CONTAINER   # Show detailed container info
+podman port CONTAINER     # Show port mappings
+podman stats CONTAINER    # Show live resource usage
+podman diff CONTAINER     # Show changes to container filesystem
+```
+
+## Image Management
+
+### Basic Image Operations
+
+```bash
+# List and search images
+podman images              # List local images
+podman search IMAGE_NAME   # Search for images
+
+# Image manipulation
+podman pull IMAGE         # Pull an image
+podman push IMAGE         # Push an image to registry
+podman rmi IMAGE         # Remove an image
+podman save -o FILE.tar IMAGE  # Save image to tar file
+podman load -i FILE.tar       # Load image from tar file
+```
+
+### Building Images
+
+```bash
+# Build from Dockerfile
+podman build -t NAME:TAG .     # Build from Dockerfile in current directory
+podman build -f DOCKERFILE .   # Build using specific Dockerfile
+```
+
+## Network Management
+
+### Basic Network Operations
+
+```bash
+# List and create networks
+podman network ls                  # List networks
+podman network create NETWORK      # Create a network
+podman network rm NETWORK          # Remove a network
+
+# Container networking
+podman network connect NETWORK CONTAINER    # Connect container to network
+podman network disconnect NETWORK CONTAINER # Disconnect container from network
+```
+
+## Volume Management
+
+### Volume Operations
+
+```bash
+# Basic volume management
+podman volume ls          # List volumes
+podman volume create VOL  # Create a volume
+podman volume rm VOL      # Remove a volume
+podman volume inspect VOL # Inspect a volume
+```
+
+## System Management
+
+### System Commands
+
+```bash
+# System maintenance
+podman system prune              # Remove unused data
+podman system df                 # Show disk usage
+podman system info               # Show system information
+podman system reset              # Reset podman storage
+
+# Clean up
+podman container prune          # Remove all stopped containers
+podman image prune             # Remove unused images
+podman volume prune            # Remove unused volumes
+```
+
+## Common Run Options
+
+### Useful Container Creation Flags
+
+```bash
+# Basic options
+--name NAME               # Assign name to container
+-d, --detach             # Run container in background
+-it                      # Interactive with terminal
+--rm                     # Remove container when it exits
+
+# Resource limits
+--memory="1g"            # Memory limit
+--cpus="1.5"            # CPU limit
+
+# Network options
+-p 8080:80               # Port mapping (host:container)
+--network NETWORK        # Connect to network
+--dns SERVER             # Set DNS servers
+
+# Volume and mount options
+-v /host:/container      # Bind mount
+--volume-driver         # Specify volume driver
+```
+
+## Testing and Development
+
+### Useful Testing Commands
+
+```bash
+# Container troubleshooting
+podman exec CONTAINER ps aux     # List processes
+podman exec CONTAINER netstat -tulpn  # List listening ports
+podman exec CONTAINER df -h     # Check disk space
+
+# Container inspection
+podman logs --tail 50 CONTAINER  # Show last 50 log lines
+podman events --filter container=CONTAINER  # Show container events
+```
+
+## Systemd Integration
+
+### Systemd Container Management
+
+```bash
+# Generate systemd unit files
+podman generate systemd CONTAINER > container.service
+
+# Manage containers with systemd
+systemctl --user start container   # Start container
+systemctl --user stop container    # Stop container
+systemctl --user enable container  # Enable at boot
+```
+
+## Environment Variables
+
+### Managing Environment Variables
+
+```bash
+# Setting environment variables
+--env KEY=VALUE          # Set single environment variable
+--env-file FILE         # Load environment variables from file
+
+# Viewing environment variables
+podman exec CONTAINER env  # View container environment variables
+```
+
+## Notes
+
+- Replace CONTAINER with container name or ID
+- Replace IMAGE with image name or ID
+- Replace NETWORK with network name
+- Replace VOL with volume name
+- Use `podman --help` or `podman COMMAND --help` for detailed information
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: solti.md
+TITLE: SOLTI - Systems Oriented Laboratory Testing & Integration
+FILENAME: solti.md
+==== CONTENT_START ====
+# SOLTI - Systems Oriented Laboratory Testing & Integration
+
+## Overview
+
+SOLTI provides a comprehensive framework for testing and integrating system components in a controlled environment. The project emphasizes methodical testing, system behavior analysis, and component integration.
+
+## Claude Instructions
+
+This is the goal.
+I want to start on solti-enemble
+I need a recipe that I can repeat in script to build the ansible collection similar to monitoring collection.  (note: this now solti-monitoring in future.)
+Create the  solti-ensemble/verify_output with a .gitignore everything.
+
+The long term goal is the pattern of what makes a solti 'collection' and how far we can go with molecule testing will work. (first we test, then we consolidate)
+
+## Name Origin
+
+- **S**ystems: Managing and testing system-of-systems
+- **O**riented: Structured and purposeful approach
+- **L**aboratory: Controlled testing environment
+- **T**esting: Verification and validation
+- **I**ntegration: Component interconnection and interaction
+
+Named after Sir Georg Solti, renowned for his precise and analytical conducting style.
+
+## Project Structure
+
+This is the ansible galaxy collection structure
+
+```
+jackaltx/
+├── solti/monitoring/   # System monitoring and metrics collection
+├── solti/conductor/    # Proxmox management and orchestration
+├── solti/ensemble/     # Support tools and shared utilities
+└── solti/score/       # Documentation and playbooks
+```
+
+This is the logical repository structure on github
+
+```
+jackaltx/
+├── solti-monitoring/   # System monitoring and metrics collection
+├── solti-conductor/    # Proxmox management and orchestration
+├── solti-ensemble/     # Support tools and shared utilities
+└── solti-score/       # Documentation and playbooks
+```
+
+### solti-monitoring
+
+Current implementation includes:
+
+- Metrics collection (Telegraf)
+- Time-series storage (InfluxDB)
+- Log aggregation (Loki)
+- OpenTelemetry collection (Alloy)
+- Shared configurations and utilities
+
+### solti-conductor (TBD)
+
+Planned features:
+
+- Proxmox VM management
+- Resource orchestration
+- Configuration management
+- Deployment automation
+
+### solti-ensemble (Starting)
+
+Current implementation includes:
+
+- Mariadb (MySQL)
+- HashiVault (InfluxDB)
+- Automated Certificate Management Environment (ACME)
+
+Planned features:  (not now)
+
+- NFS client management
+- Common system configurations
+- Shared security policies
+- Cross-component utilities
+
+### solti-score (TBD)
+
+Documentation and playbooks:
+
+- Architecture documentation
+- Implementation guides
+- Integration patterns
+- Best practices
+
+## Testing Philosophy
+
+- Emphasis on controlled environments
+- Systematic behavior analysis
+- Component isolation capability
+- Integration validation
+- Performance measurement
+
+## Key Features
+
+- Comprehensive monitoring
+- Automated testing
+- System integration
+- Behavior analysis
+- Performance metrics
+- Log aggregation
+- Configuration management
+
+## Technology Stack
+
+Current components:
+
+- Ansible for automation
+- Molecule for testing
+- InfluxDB for metrics
+- Loki for logs
+- Telegraf for collection
+- Alloy for OpenTelemetry
+- Proxmox for virtualization
+
+## Development Guidelines
+
+- Modular design
+- Clear separation of concerns
+- Comprehensive testing
+- Documented interfaces
+- Version controlled components
+- Consistent naming conventions
+
+## Testing Methodology
+
+- Unit testing with Molecule
+- Integration testing across components
+- Performance validation
+- Behavior verification
+- Security validation
+
+## Deployment
+
+- Automated via Ansible
+- Environment-specific configurations
+- Version-controlled deployments
+- Rollback capabilities
+- Monitoring integration
+
+## Security Considerations
+
+- Component isolation
+- Access control
+- Secure communications
+- Audit logging
+- Compliance validation
+
+## Future Directions
+
+- PCAP analysis integration
+- Extended system feeders
+- Enhanced automation
+- Additional monitoring capabilities
+- Extended testing frameworks
+
+## Contributing
+
+TBD:
+
+- Contribution guidelines
+- Code review process
+- Testing requirements
+- Documentation standards
+- Version control workflow
+
+## License
+
+TBD
+
+## Contact
+
+TBD
+
+## Acknowledgments
+
+- Sir Georg Solti - Name inspiration
+- Open source community
+- Project contributors
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: molecule/shared/proxmox/readme.md
+TITLE: readme
+FILENAME: readme.md
+==== CONTENT_START ====
+this folder is deprecated.  Unit tests use it.  
+will be deleted when I move to podman for unit tests.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: plugins/README.md
+TITLE: Collections Plugins Directory
+FILENAME: README.md
+==== CONTENT_START ====
+# Collections Plugins Directory
+
+This directory can be used to ship various plugins inside an Ansible collection. Each plugin is placed in a folder that
+is named after the type of plugin it is in. It can also include the `module_utils` and `modules` directory that
+would contain module utils and modules respectively.
+
+Here is an example directory of the majority of plugins currently supported by Ansible:
+
+```
+└── plugins
+    ├── action
+    ├── become
+    ├── cache
+    ├── callback
+    ├── cliconf
+    ├── connection
+    ├── filter
+    ├── httpapi
+    ├── inventory
+    ├── lookup
+    ├── module_utils
+    ├── modules
+    ├── netconf
+    ├── shell
+    ├── strategy
+    ├── terminal
+    ├── test
+    └── vars
+```
+
+A full list of plugin types can be found at [Working With Plugins](https://docs.ansible.com/ansible-core/2.16/plugins/plugins.html).
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/alloy/README.md
+TITLE: Alloy Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# Alloy Ansible Role
+
+## Overview
+
+This Ansible role installs and configures [Grafana Alloy](https://grafana.com/docs/alloy/latest/), a vendor-neutral distribution of the OpenTelemetry (OTel) Collector that provides a unified way to collect and process observability data from various sources and forward it to different backends.
+
+Alloy streamlines the collection of logs, metrics, and traces with consistent configuration across multiple observability signals. This role primarily focuses on log collection and forwarding to Loki, but is extensible for other use cases.
+
+## Features
+
+- Installs and configures Alloy from official Grafana repositories
+- Manages Alloy service lifecycle (start/stop/restart)
+- Configures log sources including systemd journal, files, and application logs
+- Configures multiple pipelines for custom log processing
+- Supports sending data to multiple Loki endpoints
+- Includes utility scripts for easy deployment and verification
+- Includes pre-configured templates for common applications:
+  - Apache web server
+  - Fail2ban
+  - Bind9 DNS server
+  - Mail services (Postfix/Dovecot)
+  - WireGuard VPN
+  - Gitea
+  - ISPConfig
+
+## Requirements
+
+### Platform Support
+
+- Debian/Ubuntu systems (using `apt` package manager)
+- RedHat-based systems (Rocky Linux, RHEL) via shared configuration
+- Systemd-based systems
+
+### Prerequisites
+
+- Systemd-based operating system
+- Network connectivity to Loki endpoint(s)
+- Grafana package repository access
+
+## Role Variables
+
+### Main Control Variables
+
+```yaml
+# Installation state
+alloy_state: "present"                # Use 'absent' to remove Alloy
+
+# Service configuration
+alloy_custom_args: "--disable-reporting --server.http.listen-addr=0.0.0.0:12345"
+
+# Configuration path
+alloy_config: "/etc/alloy/config.alloy"
+
+# Uninstallation options
+alloy_delete_config: false            # Remove config files on uninstall
+alloy_delete_data: false              # Remove data files on uninstall
+```
+
+### Endpoint Configuration
+
+```yaml
+# Loki endpoints - REQUIRED
+alloy_loki_endpoints:
+  - label: localhost                  # Label for the endpoint (used in configuration)
+    endpoint: "127.0.0.1"            # Loki server IP/hostname
+```
+
+### Log Source Configuration
+
+```yaml
+# Enable specific log collection modules
+alloy_monitor_apache: false           # Apache logs
+alloy_monitor_ispconfig: false        # ISPConfig logs
+alloy_monitor_fail2ban: false         # Fail2ban logs
+alloy_monitor_mail: false             # Mail server logs
+alloy_monitor_bind9: false            # Bind9 logs
+alloy_monitor_wg: false               # WireGuard logs
+alloy_monitor_gitea: false            # Gitea logs
+```
+
+## Installation
+
+The role uses the official Grafana package repositories to install Alloy. It also configures the systemd service and manages necessary directories with appropriate permissions.
+
+## Configuration
+
+The role takes a template-based approach to configuration, allowing you to easily enable or disable specific log collection modules based on your needs. The main configuration file is generated from templates that include:
+
+1. Core configuration for log processing
+2. Specific log sources based on enabled modules
+3. Output configuration for Loki endpoints
+
+## Usage Examples
+
+### Basic Installation
+
+```yaml
+- hosts: servers
+  roles:
+    - role: alloy
+      vars:
+        alloy_loki_endpoints:
+          - label: local_loki
+            endpoint: "127.0.0.1"
+```
+
+### Using the Utility Scripts
+
+The included utility scripts make deploying and managing Alloy simpler:
+
+```bash
+# Deploy Alloy using the management script
+./manage-svc alloy deploy
+
+# Verify Alloy is working correctly
+./svc-exec alloy verify
+
+# Deploy to a specific host
+./manage-svc -h monitoring01 alloy deploy
+```
+
+### Comprehensive Configuration
+
+```yaml
+- hosts: web_servers
+  roles:
+    - role: alloy
+      vars:
+        alloy_loki_endpoints:
+          - label: main_loki
+            endpoint: "loki.example.com"
+          - label: backup_loki
+            endpoint: "backup-loki.example.com"
+        
+        # Enable specific log collection
+        alloy_monitor_apache: true
+        alloy_monitor_fail2ban: true
+        
+        # Custom listening address
+        alloy_custom_args: "--disable-reporting --server.http.listen-addr=0.0.0.0:3100"
+```
+
+### Removal Configuration
+
+```yaml
+- hosts: servers
+  roles:
+    - role: alloy
+      vars:
+        alloy_state: 'absent'
+        alloy_delete_config: true
+        alloy_delete_data: true
+```
+
+## Log Processing Capabilities
+
+### Journal Processing
+
+Alloy is configured to collect logs from the systemd journal with enriched metadata:
+
+- Priority levels
+- Unit information
+- Transport metadata
+- Hostname labels
+
+### File-Based Log Processing
+
+The role can process various log files with specialized parsing:
+
+**Apache Logs:**
+
+- Access logs with detailed request information
+- Error logs with enhanced error categorization
+- ModSecurity integration
+- PHP error parsing
+
+**Bind9 DNS Logs:**
+
+- Zone operations
+- Query information
+- DNSSEC operations
+- Transfer logs
+- Security events
+
+**Fail2ban Logs:**
+
+- Jail information
+- Action categorization
+- Ban/Unban events
+
+**Mail Server Logs:**
+
+- Authentication events
+- Connection information
+- Delivery status
+- Error tracking
+
+**WireGuard Logs:**
+
+- Connection establishment
+- Peer activity
+- Handshake information
+- Error tracking
+
+### Advanced Parsing Features
+
+- Multi-line log support
+- Regular expression-based field extraction
+- Label enrichment
+- Filtering and dropping of noisy events
+- Error categorization
+- Security incident tracking
+
+## Directory Structure
+
+```
+alloy/
+├── defaults/
+│   └── main.yml                 # Default variables
+├── files/
+│   ├── apache-error.alloy       # Example configurations
+│   ├── claude-two-outputs.alloy
+│   └── grafana.list
+├── handlers/
+│   └── main.yml                # Service handlers
+├── meta/
+│   └── main.yml               # Role metadata
+├── molecule/                  # Testing configuration
+├── tasks/
+│   ├── main.yml              # Main tasks
+│   └── verify.yml            # Verification tasks
+├── templates/
+│   ├── client-config-alloy.j2  # Main template
+│   ├── etc-default-alloy.j2    # Environment configuration
+│   ├── apache-logs.alloy.j2    # Module templates
+│   ├── fail2ban.alloy.j2
+│   └── ...                     # Other module templates
+└── README.md                   # This file
+```
+
+## Handlers
+
+The role includes the following handlers:
+
+- `Restart alloy`: Restarts the Alloy service when configuration changes
+
+## Testing
+
+The role includes Molecule tests for:
+
+- Basic installation
+- Configuration verification
+- Service status checks
+- Log collection functionality
+
+## Security Considerations
+
+- The role configures Alloy with appropriate file permissions
+- Service runs as its own user
+- Configuration is validated before restarting the service
+- Label filtering to remove sensitive information
+- Optional dropping of connection data for privacy
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Service fails to start**
+   - Check logs with `journalctl -u alloy`
+   - Verify configuration with `alloy --config.file /etc/alloy/config.alloy --config.expand-env --config.check`
+   - Use the verification script: `./svc-exec alloy verify`
+
+2. **No logs being collected**
+   - Verify Loki endpoint is correct and accessible
+   - Check network connectivity to Loki endpoint
+   - Verify file paths and permissions
+   - Use `./svc-exec alloy verify1` for deeper connection checks
+
+3. **High CPU/memory usage**
+   - Check for excessive log volume
+   - Verify filtering is properly configured
+   - Consider increasing system resources
+
+4. **Need to quickly reinstall the service**
+   - Use the management script: `./manage-svc alloy remove && ./manage-svc alloy deploy`
+
+5. **Connection to Loki failing**
+   - Verify network connectivity: `ss -ntp '( dst = :3100 )'`
+   - Check Loki service is running properly
+   - Use `./svc-exec -K alloy verify` to run comprehensive checks
+
+## License
+
+MIT
+
+## Utility Scripts
+
+This role can be easily managed using the following utility scripts included in the project:
+
+### manage-svc.sh
+
+This script helps manage service deployment states using dynamically generated Ansible playbooks.
+
+```bash
+Usage: manage-svc [-h HOST] <service> <action>
+
+Options:
+  -h HOST    Target host from inventory (default: uses hosts defined in role)
+
+Services:
+  - loki
+  - alloy
+  - influxdb
+  - telegraf
+
+Actions:
+  - prepare
+  - deploy
+  - install  # Alias for deploy
+  - remove
+```
+
+**Examples:**
+
+```bash
+# Deploy Alloy to default hosts
+./manage-svc alloy deploy
+
+# Remove Alloy from a specific host
+./manage-svc -h monitoring01 alloy remove
+
+# Install Influxdb on a specific host
+./manage-svc -h dbserver01 influxdb install
+```
+
+### svc-exec.sh
+
+This script executes specific tasks within a role for targeted operations like verification, configuration, or testing.
+
+```bash
+Usage: svc-exec [-K] [-h HOST] <service> [entry]
+
+Options:
+  -K        - Prompt for sudo password (needed for some operations)
+  -h HOST   - Target specific host from inventory
+
+Parameters:
+  service   - The service to manage
+  entry     - The entry point task (default: verify)
+
+Services:
+  - loki
+  - alloy
+  - influxdb
+  - telegraf
+  
+Common Entry Points:
+  - verify     - Basic service verification
+  - configure  - Configure service
+  - verify1    - Additional verification tasks
+```
+
+**Examples:**
+
+```bash
+# Run verification tasks for Alloy on default hosts
+./svc-exec alloy verify
+
+# Run specific verification task on a particular host
+./svc-exec -h monitoring01 alloy verify1
+
+# Configure Alloy with sudo privileges
+./svc-exec -K alloy configure
+```
+
+These scripts provide a convenient way to manage the lifecycle and perform specific operations on the Alloy role and other related services without having to manually create playbooks.
+
+## Author Information
+
+Created by Jack Lavender with assistance from Anthropic's Claude. Extended by the community.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/influxdb/README.md
+TITLE: InfluxDB Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# InfluxDB Ansible Role
+
+## Overview
+
+This role installs and configures [InfluxDB v2.x](https://www.influxdata.com/products/influxdb/), a purpose-built time series database optimized for fast, high-availability storage and retrieval of time series data. InfluxDB serves as the metrics storage component in the monitoring stack, providing a powerful query engine and efficient storage mechanism.
+
+InfluxDB v2.x features a new storage engine and completely redesigned API compared to v1.x, with built-in authentication, bucket-based organization, and the powerful Flux query language.
+
+## Features
+
+- Installs and configures InfluxDB v2.x from official InfluxData repositories
+- Manages InfluxDB service lifecycle (start/stop/restart)
+- Configures storage paths and engine options
+- Handles initial database setup and user configuration
+- Sets up buckets, tokens, and organizations
+- Supports both local disk and S3-compatible object storage
+- Includes utility scripts for easy deployment and verification
+- Prepares for future upgrade path to InfluxDB v3.x with tiered storage
+
+## Requirements
+
+### Platform Support
+
+- Debian/Ubuntu systems (using `apt` package manager)
+- RedHat-based systems (Rocky Linux, RHEL)
+- Systemd-based systems
+
+### Prerequisites
+
+- Systemd-based operating system
+- Network connectivity for client access
+- InfluxData package repository access
+- S3 credentials (if using object storage)
+
+## Role Variables
+
+### Main Control Variables
+
+```yaml
+# Installation state
+influxdb_state: "present"          # Use 'absent' to remove InfluxDB
+
+# Logging level
+influxdb_level: info               # Logging level
+
+# Database organization and bucket
+influxdb_org: "myorg"              # Organization name
+influxdb_bucket: "telegraf"        # Default bucket name
+influxdb_username: "username"      # Admin username
+influxdb_password: "generated"     # Admin password (will be randomly generated if set to "generated")
+
+# Storage configuration 
+influxdb_data_path: "/var/lib/influxdb"   # Path to store InfluxDB data
+
+# Reinstallation flags
+influxdb_force_reload: false       # Force reinstallation
+influxdb_force_configure: false    # Force reconfiguration
+
+# Security configuration
+influxdb_cert: ""                  # Path to SSL certificate
+influxdb_key: ""                   # Path to SSL private key
+
+# Uninstallation options
+influxdb_delete_config: false      # Remove config files on uninstall
+influxdb_delete_data: false        # Remove data directory on uninstall
+
+# Integration with Telegraf
+influxdb_operators_token: ""       # Token for operator access
+```
+
+### S3 Storage Variables
+
+For S3 storage configuration (using environment variables):
+
+```yaml
+# S3 storage configuration
+influxdb_s3: false                 # Enable S3 storage
+influxdb_s3_access_key: ""         # S3 access key
+influxdb_s3_secret_key: ""         # S3 secret key
+influxdb_s3_bucket: ""             # S3 bucket name
+```
+
+## Installation and Initialization
+
+The role performs these key setup tasks:
+
+1. **Package Installation**: Installs InfluxDB v2.x from official repositories
+2. **Storage Configuration**: Sets up the storage engine paths
+3. **Initial Setup**: Initializes the database with organization, user, and bucket
+4. **Token Management**: Creates and stores authentication tokens
+5. **Bucket Creation**: Sets up configured buckets with appropriate retention policies
+
+## Storage Configuration
+
+### Local Disk Storage (Default)
+
+By default, InfluxDB uses local filesystem storage:
+
+```yaml
+influxdb_data_path: "/var/lib/influxdb"
+```
+
+The role configures these key storage components:
+
+- BoltDB path: `{{influxdb_data_path}}/influxd.bolt` (metadata)
+- Engine path: `{{influxdb_data_path}}/engine` (time series data)
+
+### S3 Configuration
+
+For S3-compatible object storage, configure:
+
+```yaml
+influxdb_s3: true
+influxdb_s3_access_key: "ACCESS_KEY"
+influxdb_s3_secret_key: "SECRET_KEY"
+influxdb_s3_bucket: "influxdb-data"
+```
+
+These settings are passed to InfluxDB via environment variables for secure credentials management.
+
+### Future v3.x Tiered Storage Support
+
+This role is designed with the upgrade path to InfluxDB v3.x in mind, which will support tiered storage:
+
+- **Hot Tier**: Local disk for recent, frequently accessed data
+- **Cold Tier**: S3 storage for historical, less frequently accessed data
+
+When v3.x becomes available, this role will be updated to support configuring tiered storage policies while maintaining backward compatibility.
+
+## Usage Examples
+
+### Basic Installation with Disk Storage
+
+```yaml
+- hosts: metrics_servers
+  roles:
+    - role: influxdb
+      vars:
+        influxdb_org: "mycompany"
+        influxdb_bucket: "metrics"
+        influxdb_username: "admin"
+```
+
+### Using the Utility Scripts
+
+The included utility scripts make deploying and managing InfluxDB simpler:
+
+```bash
+# Deploy InfluxDB using the management script
+./manage-svc influxdb deploy
+
+# Verify InfluxDB is working correctly
+./svc-exec influxdb verify
+
+# Deploy to a specific host
+./manage-svc -h dbserver01 influxdb deploy
+```
+
+### Configuration with S3 Storage
+
+```yaml
+- hosts: metrics_servers
+  roles:
+    - role: influxdb
+      vars:
+        influxdb_org: "mycompany"
+        influxdb_bucket: "metrics"
+        influxdb_s3: true
+        influxdb_s3_access_key: "{{ vault_influxdb_s3_access_key }}"
+        influxdb_s3_secret_key: "{{ vault_influxdb_s3_secret_key }}"
+        influxdb_s3_bucket: "influxdb-storage"
+```
+
+### Removal Configuration
+
+```yaml
+- hosts: metrics_servers
+  roles:
+    - role: influxdb
+      vars:
+        influxdb_state: 'absent'
+        influxdb_delete_config: true
+        influxdb_delete_data: true
+```
+
+## Integration with the Monitoring Stack
+
+InfluxDB serves as the metrics storage component in a complete monitoring stack:
+
+1. **Telegraf** collects and forwards metrics to InfluxDB
+2. **InfluxDB** stores and provides query capabilities for metrics
+3. **Grafana** provides visualization and dashboard capabilities
+
+The role automatically creates tokens for integration with Telegraf, making setup seamless.
+
+## Generated Configuration Files
+
+The role creates several important files:
+
+- **Configuration**: `/etc/influxdb/config.toml`
+- **Environment Variables**: `/etc/default/influxdb2`
+- **Tokens File**: `influx-tokens-{hostname}.yml` in the playbook's data directory
+- **Web UI Credentials**: `influx-webui-access-{hostname}.txt` in the playbook's data directory
+
+## Accessing InfluxDB
+
+The role generates credentials for accessing InfluxDB:
+
+- **Web UI**: Available at `http://<server>:8086`
+- **CLI**: Use the generated token with `influx` commands
+- **API Access**: Use the operator token for programmatic access
+
+## Directory Structure
+
+```
+influxdb/
+├── defaults/
+│   └── main.yml                 # Default variables
+├── handlers/
+│   └── main.yml                # Service handlers
+├── meta/
+│   └── main.yml               # Role metadata
+├── molecule/                  # Testing configuration
+├── tasks/
+│   ├── main.yml              # Main tasks
+│   ├── initializedb.yml      # Database initialization
+│   └── influxdb-setup-systemd.yml # Systemd configuration
+├── templates/
+│   ├── config.toml.j2        # Configuration template
+│   └── etc-default-influxdb.j2 # Environment configuration
+└── README.md                  # This file
+```
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Service fails to start**
+   - Check logs with `journalctl -u influxdb`
+   - Verify configuration with `influxd config`
+   - Use the verification script: `./svc-exec influxdb verify`
+
+2. **Cannot connect to database**
+   - Verify the service is running: `systemctl status influxdb`
+   - Check firewall rules for port 8086
+   - Verify TLS configuration if using HTTPS
+
+3. **Authentication issues**
+   - Check token validity with `influx auth list`
+   - Verify you're using the correct organization
+   - Review the generated credentials file
+
+4. **Storage problems**
+   - For disk storage: check disk space and permissions
+   - For S3: verify endpoint, credentials, and bucket existence
+
+5. **Need to quickly reinstall the service**
+   - Use the management script: `./manage-svc influxdb remove && ./manage-svc influxdb deploy`
+
+## Utility Scripts
+
+This role can be easily managed using the following utility scripts included in the project:
+
+### manage-svc.sh
+
+This script helps manage service deployment states using dynamically generated Ansible playbooks.
+
+```bash
+Usage: manage-svc [-h HOST] <service> <action>
+
+Options:
+  -h HOST    Target host from inventory (default: uses hosts defined in role)
+
+Services:
+  - loki
+  - alloy
+  - influxdb
+  - telegraf
+
+Actions:
+  - prepare
+  - deploy
+  - install  # Alias for deploy
+  - remove
+```
+
+**Examples:**
+
+```bash
+# Deploy InfluxDB to default hosts
+./manage-svc influxdb deploy
+
+# Remove InfluxDB from a specific host
+./manage-svc -h dbserver01 influxdb remove
+```
+
+### svc-exec.sh
+
+This script executes specific tasks within a role for targeted operations like verification or configuration.
+
+```bash
+Usage: svc-exec [-K] [-h HOST] <service> [entry]
+
+Options:
+  -K        - Prompt for sudo password (needed for some operations)
+  -h HOST   - Target specific host from inventory
+
+Parameters:
+  service   - The service to manage
+  entry     - The entry point task (default: verify)
+```
+
+**Examples:**
+
+```bash
+# Run verification tasks for InfluxDB on default hosts
+./svc-exec influxdb verify
+
+# Initialize the database on a particular host
+./svc-exec -K -h dbserver01 influxdb initializedb
+```
+
+## Performance Considerations
+
+### Hardware Recommendations
+
+Minimum recommended specifications:
+
+- 4 CPU cores
+- 8GB RAM
+- Fast disk for local storage (SSD preferred)
+- High-throughput network for remote clients
+
+### Scaling Considerations
+
+InfluxDB v2.x is designed as a single-node solution. For horizontal scaling:
+
+- Use multiple buckets with different retention policies
+- Consider using InfluxDB Cloud for truly distributed deployments
+- Plan for future migration to InfluxDB v3.x for improved clustering support
+
+## Security Considerations
+
+- The role configures InfluxDB with appropriate file permissions
+- Tokens are generated with least-privilege access
+- SSL/TLS can be enabled for secure communication
+- S3 credentials are managed via environment variables
+- Passwords can be generated or specified securely
+- Token files are stored with restricted permissions
+
+## Upgrade Path to v3.x
+
+InfluxDB v3.x is expected to introduce:
+
+- Improved clustering and high availability
+- Tiered storage (hot/cold) for optimized storage economics
+- Enhanced query performance and capabilities
+
+This role is designed with future upgradability in mind, creating configuration that can be easily migrated to v3.x when it becomes available.
+
+## License
+
+MIT
+
+## Author Information
+
+Created and maintained by Jack Lavender.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/log_tests/README.md
+TITLE: Log Tests Role
+FILENAME: README.md
+==== CONTENT_START ====
+I'll help you update the README for the log_tests role. Let me start by writing a comprehensive, professional README that explains the purpose and functionality of the log_tests role.
+
+# Log Tests Role
+
+## Overview
+
+The `log_tests` role provides verification and integration testing for the Loki and Alloy log collection stack. Unlike traditional unit tests, this role focuses on interoperability between components to verify the entire log pipeline is functioning correctly.
+
+## Purpose
+
+This role is designed to:
+
+- Verify correct operation of the Loki-Alloy log pipeline
+- Confirm log data is being properly forwarded from Alloy to Loki
+- Test query capabilities and data retrieval from Loki
+- Generate detailed reports on integration status
+- Identify configuration and connectivity issues between components
+
+## Requirements
+
+### Platform Support
+
+- Debian/Ubuntu systems
+- RedHat/CentOS systems
+- Systemd-based systems
+
+### Prerequisites
+
+- Loki service installed and running
+- Alloy service installed and running
+- Network connectivity between Alloy and Loki
+- Proper port access (Loki default: 3100)
+
+## Features
+
+- Comprehensive verification of Loki and Alloy services
+- Connection testing between components
+- Log data ingestion verification
+- Query capability testing
+- Detailed report generation
+- Integration with CI/CD pipelines
+
+## Role Variables
+
+```yaml
+# Output directory for test reports
+report_root: "{{ project_root }}/verify_output"
+```
+
+## Test Methodology
+
+The role performs a series of tests including:
+
+1. **Service Status Verification**
+   - Checks if Loki and Alloy services are running and enabled
+   - Verifies process states and systemd configurations
+
+2. **Network Connectivity Tests**
+   - Confirms Loki is listening on port 3100
+   - Verifies Alloy has established a connection to Loki
+   - Examines network socket connections
+
+3. **Data Flow Validation**
+   - Tests that logs are flowing from Alloy to Loki
+   - Queries recent logs to confirm data ingestion
+   - Verifies no errors in log forwarding
+
+4. **Query Functionality**
+   - Tests Loki's query API
+   - Confirms data retrieval works correctly
+   - Validates query response format
+
+5. **Error Detection**
+   - Examines service logs for errors
+   - Verifies no critical issues in configuration
+   - Identifies potential data loss scenarios
+
+## Usage Examples
+
+### Basic Verification
+
+```yaml
+- hosts: monitoring_servers
+  roles:
+    - role: log_tests
+```
+
+### Integration with CI/CD
+
+```yaml
+- hosts: ci_test_hosts
+  roles:
+    - role: log_tests
+  vars:
+    report_root: "/tmp/test_reports"
+```
+
+## Output and Reporting
+
+The role generates detailed reports in YAML format containing:
+
+- Service versions
+- Service states
+- Connection information
+- Query test results
+- Error messages (if any)
+- Detailed diagnostics
+
+Reports are stored in the specified `report_root` directory and organized by distribution.
+
+## Integration with Monitoring Stack
+
+This role complements the monitoring stack by providing:
+
+- Verification after initial deployment
+- Regular health checks for the log pipeline
+- Diagnostic information for troubleshooting
+- Integration test capabilities for CI/CD pipelines
+
+## Example Output
+
+A successful test report includes:
+
+```yaml
+=== Monitor Stack Integration Test Results ===
+Timestamp: 2025-03-23T12:34:56+00:00
+
+Service Versions:
+- Loki: v2.9.2
+- Alloy: v0.5.1
+
+Service Status:
+- Loki: running
+- Alloy: running
+
+Loki Health:
+- Metrics Available: true
+- Log Query Success: true
+
+Alloy Integration:
+- Connection Status: Established
+- Network Connections: [detailed connection info]
+- Process Information: [detailed process info]
+
+Recent Log Activity:
+✓ No errors found in logs for services:
+  - loki
+  - alloy
+```
+
+## Testing in CI Environment
+
+For CI/CD environments, the role can be adapted to:
+
+- Run non-interactively
+- Generate machine-readable reports
+- Return appropriate exit codes
+- Output JUnit-compatible test results
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Connection failures**
+   - Check network configuration
+   - Verify port accessibility
+   - Confirm service addresses
+
+2. **Data not appearing in queries**
+   - Check Alloy configuration
+   - Verify log sources
+   - Examine Loki storage configuration
+
+3. **Service status errors**
+   - Check systemd service configuration
+   - Verify permissions
+   - Examine service logs
+
+## License
+
+MIT
+
+## Author Information
+
+Originally developed for verifying the Loki-Alloy log collection stack.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/loki/README.md
+TITLE: Loki Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# Loki Ansible Role
+
+## Overview
+
+This role installs and configures [Grafana Loki](https://grafana.com/oss/loki/), a horizontally-scalable, highly-available log aggregation system inspired by Prometheus. Loki is designed to be cost-effective and easy to operate, as it does not index the contents of the logs, but rather a set of labels for each log stream.
+
+## Features
+
+- Installs and configures Loki from official Grafana repositories
+- Manages Loki service lifecycle (start/stop/restart)
+- Supports flexible storage backends:
+  - Local filesystem storage (default)
+  - Network File System (NFS) mounts
+  - S3-compatible object storage (MinIO, QNAP QuObject, AWS S3)
+- Configurable retention and compaction settings
+- Includes utility scripts for easy deployment and verification
+- Works seamlessly with Grafana Alloy as a log collector
+
+## Requirements
+
+### Platform Support
+
+- Debian/Ubuntu systems (using `apt` package manager)
+- RedHat-based systems (Rocky Linux, RHEL) via shared configuration
+- Systemd-based systems
+
+### Prerequisites
+
+- Systemd-based operating system
+- Network connectivity for client access
+- Grafana package repository access
+- S3 credentials (if using object storage)
+
+## Role Variables
+
+### Main Control Variables
+
+```yaml
+# Installation state
+loki_state: present              # Use 'absent' to remove Loki
+
+# Storage selection
+loki_local_storage: true         # Use local filesystem storage
+
+# Uninstallation options
+loki_force_reload: false         # Force reinstallation
+loki_delete_config: false        # Remove config files on uninstall
+loki_delete_data: false          # Remove data files on uninstall
+```
+
+### S3 Storage Configuration
+
+When `loki_local_storage` is set to `false`, these variables configure S3 storage:
+
+```yaml
+# S3 configuration (only needed when loki_local_storage: false)
+loki_endpoint: ""                # S3 endpoint URL
+loki_s3_bucket: ""               # S3 bucket name
+loki_key_id: ""                  # S3 access key ID
+loki_access_key: ""              # S3 secret access key
+```
+
+## Installation
+
+The role uses the official Grafana package repositories to install Loki. It also configures the systemd service and manages necessary directories with appropriate permissions.
+
+## Storage Configuration
+
+### Local Storage (Default)
+
+By default, Loki is configured to use local filesystem storage:
+
+```yaml
+loki_local_storage: true
+```
+
+This setting:
+
+- Stores chunks in `/var/lib/loki/chunks`
+- Stores rules in `/var/lib/loki/rules`
+- Provides best performance for single-node deployments
+- Simplifies setup with no additional dependencies
+
+### S3-Compatible Object Storage
+
+For distributed deployments or long-term storage, configure S3-compatible storage:
+
+```yaml
+loki_local_storage: false
+loki_endpoint: "s3.example.com"
+loki_s3_bucket: "loki-logs"
+loki_key_id: "ACCESS_KEY_ID"
+loki_access_key: "SECRET_ACCESS_KEY"
+```
+
+This configuration works with:
+
+- AWS S3
+- MinIO
+- QNAP QuObject
+- Any S3-compatible storage service
+
+### NFS Storage Considerations
+
+When using NFS for storage:
+
+1. Mount the NFS share before installing Loki
+2. Configure local storage to use the NFS mount point
+3. Ensure proper permissions on the NFS mount
+
+## Usage Examples
+
+### Basic Installation with Local Storage
+
+```yaml
+- hosts: log_servers
+  roles:
+    - role: loki
+      vars:
+        loki_local_storage: true
+```
+
+### Using the Utility Scripts
+
+The included utility scripts make deploying and managing Loki simpler:
+
+```bash
+# Deploy Loki using the management script
+./manage-svc loki deploy
+
+# Verify Loki is working correctly
+./svc-exec loki verify
+
+# Deploy to a specific host
+./manage-svc -h logserver01 loki deploy
+```
+
+### Configuration with S3 Storage
+
+```yaml
+- hosts: log_servers
+  roles:
+    - role: loki
+      vars:
+        loki_local_storage: false
+        loki_endpoint: "minio.example.com"
+        loki_s3_bucket: "loki-logs"
+        loki_key_id: "{{ vault_loki_key_id }}"
+        loki_access_key: "{{ vault_loki_access_key }}"
+```
+
+### Removal Configuration
+
+```yaml
+- hosts: log_servers
+  roles:
+    - role: loki
+      vars:
+        loki_state: 'absent'
+        loki_delete_config: true
+        loki_delete_data: true
+```
+
+## Directory Structure
+
+```
+loki/
+├── defaults/
+│   └── main.yml                 # Default variables
+├── files/
+│   └── config-working.yml       # Reference configuration
+├── handlers/
+│   └── main.yml                # Service handlers
+├── meta/
+│   └── main.yml               # Role metadata
+├── molecule/                  # Testing configuration
+├── tasks/
+│   ├── main.yml              # Main tasks
+│   └── verify.yml            # Verification tasks
+├── templates/
+│   └── config.yml.j2         # Configuration template
+└── README.md                  # This file
+```
+
+## Integration with Grafana and Alloy
+
+Loki serves as the central log storage component in the monitoring stack:
+
+1. **Grafana Alloy** collects and forwards logs to Loki
+2. **Grafana** provides visualization and search capabilities
+3. **Loki** stores and indexes logs by their labels
+
+The role is designed to work seamlessly with these components, creating a complete observability solution.
+
+## Advanced Configuration
+
+### Schema Configuration
+
+The role configures Loki with a TSDB schema that provides:
+
+- Efficient storage and querying
+- Label indexing for fast searches
+- Configurable retention periods
+
+### Query Performance
+
+The configuration includes:
+
+- Results caching for faster repeat queries
+- Split queries for improved concurrency
+- Query scheduler limits to prevent overload
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Service fails to start**
+   - Check logs with `journalctl -u loki`
+   - Verify configuration with `loki -config.file /etc/loki/config.yml -print-config-stderr`
+   - Use the verification script: `./svc-exec loki verify`
+
+2. **Storage connectivity issues**
+   - For S3: verify endpoint, credentials, and bucket existence
+   - For local storage: check directory permissions
+   - For NFS: verify mount points and network connectivity
+
+3. **Query performance problems**
+   - Check system resources (CPU, memory, disk I/O)
+   - Verify index configuration is appropriate for your workload
+   - Consider adjusting query limits in configuration
+
+4. **Need to quickly reinstall the service**
+   - Use the management script: `./manage-svc loki remove && ./manage-svc loki deploy`
+
+## Utility Scripts
+
+This role can be easily managed using the following utility scripts included in the project:
+
+### manage-svc.sh
+
+This script helps manage service deployment states using dynamically generated Ansible playbooks.
+
+```bash
+Usage: manage-svc [-h HOST] <service> <action>
+
+Options:
+  -h HOST    Target host from inventory (default: uses hosts defined in role)
+
+Services:
+  - loki
+  - alloy
+  - influxdb
+  - telegraf
+
+Actions:
+  - prepare
+  - deploy
+  - install  # Alias for deploy
+  - remove
+```
+
+**Examples:**
+
+```bash
+# Deploy Loki to default hosts
+./manage-svc loki deploy
+
+# Remove Loki from a specific host
+./manage-svc -h logserver01 loki remove
+```
+
+### svc-exec.sh
+
+This script executes specific tasks within a role for targeted operations like verification or configuration.
+
+```bash
+Usage: svc-exec [-K] [-h HOST] <service> [entry]
+
+Options:
+  -K        - Prompt for sudo password (needed for some operations)
+  -h HOST   - Target specific host from inventory
+
+Parameters:
+  service   - The service to manage
+  entry     - The entry point task (default: verify)
+```
+
+**Examples:**
+
+```bash
+# Run verification tasks for Loki on default hosts
+./svc-exec loki verify
+
+# Run specific verification task on a particular host
+./svc-exec -h logserver01 loki verify1
+```
+
+## Performance Considerations
+
+### Storage Backend Performance
+
+Storage backend selection impacts performance:
+
+- **Local disk**: Fastest performance, but limited scalability
+- **NFS**: Good compromise between performance and simplicity for small clusters
+- **S3**: Best for distributed deployments, scalability, and durability
+
+### Resource Requirements
+
+Minimum recommended specifications:
+
+- 2 CPU cores
+- 2GB RAM
+- Fast disk for local storage (SSD preferred)
+- Network with minimal latency to storage backend
+
+## Security Considerations
+
+- The role configures Loki with appropriate file permissions
+- Service runs as its own user
+- S3 credentials can be secured using Ansible Vault
+- Default configuration doesn't enable authentication (configure external auth)
+
+## License
+
+MIT
+
+## Author Information
+
+Created and maintained by Jack Lavender.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/metrics_tests/README.md
+TITLE: Metrics Tests Role
+FILENAME: README.md
+==== CONTENT_START ====
+# Metrics Tests Role
+
+## Overview
+
+The `metrics_tests` role provides comprehensive verification and integration testing for the InfluxDB and Telegraf metrics collection stack. This role focuses on interoperability testing to ensure the complete metrics pipeline functions correctly from collection to storage.
+
+## Purpose
+
+This role is designed to:
+
+- Verify correct operation of the InfluxDB-Telegraf metrics pipeline
+- Confirm metrics data is being properly collected by Telegraf and stored in InfluxDB
+- Test query capabilities and data retrieval from InfluxDB
+- Generate detailed reports on integration status
+- Identify configuration and connectivity issues between components
+
+## Requirements
+
+### Platform Support
+
+- Debian/Ubuntu systems
+- RedHat/CentOS systems
+- Systemd-based systems
+
+### Prerequisites
+
+- InfluxDB service installed and running
+- Telegraf service installed and running
+- Network connectivity between Telegraf and InfluxDB
+- Proper port access (InfluxDB default: 8086)
+
+## Features
+
+- Comprehensive verification of InfluxDB and Telegraf services
+- Connection testing between components
+- Metrics data ingestion verification
+- Query capability testing
+- Detailed report generation
+- Integration with CI/CD pipelines
+- Support for various metric collectors (CPU, memory, disk, network)
+
+## Role Variables
+
+```yaml
+# Output directory for test reports
+report_root: "{{ project_root }}/verify_output"
+```
+
+## Test Methodology
+
+The role performs a series of tests including:
+
+1. **Service Status Verification**
+   - Checks if InfluxDB and Telegraf services are running and enabled
+   - Verifies process states and systemd configurations
+
+2. **Network Connectivity Tests**
+   - Confirms InfluxDB is listening on port 8086
+   - Verifies Telegraf has established a connection to InfluxDB
+   - Examines network socket connections and TCP communication
+
+3. **Data Flow Validation**
+   - Tests that metrics are flowing from Telegraf to InfluxDB
+   - Queries recent metrics to confirm data ingestion
+   - Verifies no errors in metrics forwarding
+
+4. **Query Functionality**
+   - Tests InfluxDB's query API
+   - Confirms data retrieval works correctly
+   - Validates query response format
+
+5. **Health Checks**
+   - Verifies InfluxDB API health endpoints
+   - Confirms bucket configuration and access
+   - Tests write and read permissions
+
+6. **Error Detection**
+   - Examines service logs for errors
+   - Verifies no critical issues in configuration
+   - Identifies potential data loss scenarios
+
+## Usage Examples
+
+### Basic Verification
+
+```yaml
+- hosts: monitoring_servers
+  roles:
+    - role: metrics_tests
+```
+
+### Integration with CI/CD
+
+```yaml
+- hosts: ci_test_hosts
+  roles:
+    - role: metrics_tests
+  vars:
+    report_root: "/tmp/test_reports"
+```
+
+## Output and Reporting
+
+The role generates detailed reports in YAML format containing:
+
+- Service versions
+- Service states
+- Connection information
+- Bucket information
+- Query test results
+- Write test results
+- Error messages (if any)
+- Detailed diagnostics
+
+Reports are stored in the specified `report_root` directory and organized by distribution and hostname.
+
+## Integration with Monitoring Stack
+
+This role complements the monitoring stack by providing:
+
+- Verification after initial deployment
+- Regular health checks for the metrics pipeline
+- Diagnostic information for troubleshooting
+- Integration test capabilities for CI/CD pipelines
+
+## Example Output
+
+A successful test report includes:
+
+```yaml
+=== Monitor Stack Integration Test Results ===
+Timestamp: 2025-03-23T12:34:56+00:00
+
+Service Status:
+- InfluxDB: running
+- Telegraf: running
+
+InfluxDB Status:
+- Version: InfluxDB v2.7.3
+- Health Check: pass
+- API Status: true
+- Write Test Success: true
+- Query Test Success: true
+- Bucket Configuration:
+    Name: telegraf
+    ID: 8f9a8e87c6940e4a
+    Retention: infinite
+    Organization ID: 8a7b6c5d4e3f2a1b
+
+Telegraf Integration:
+- Connection Status: Established
+- Network Connections: [detailed connection info]
+- Process Information: [detailed process info]
+
+Recent Log Activity:
+✓ No errors found in logs
+```
+
+## Testing in CI Environment
+
+For CI/CD environments, the role can be adapted to:
+
+- Run non-interactively
+- Generate machine-readable reports
+- Return appropriate exit codes
+- Output JUnit-compatible test results
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Connection failures**
+   - Check network configuration
+   - Verify port accessibility
+   - Confirm service addresses
+
+2. **Data not appearing in queries**
+   - Check Telegraf configuration
+   - Verify metric sources
+   - Examine InfluxDB bucket configuration
+
+3. **Write permission errors**
+   - Verify token permissions
+   - Check bucket access controls
+   - Confirm organization settings
+
+4. **Service status errors**
+   - Check systemd service configuration
+   - Verify permissions
+   - Examine service logs
+
+## How It Works
+
+The role executes a comprehensive series of checks:
+
+1. Verifies service status using `service_facts`
+2. Checks port connectivity with `wait_for`
+3. Examines network connections using `ss` utility
+4. Tests data write and query capabilities
+5. Inspects logs for errors
+6. Verifies API health endpoints
+7. Generates detailed reports
+
+All tests are performed in sequence with proper error handling to provide a complete picture of the metrics pipeline health.
+
+## License
+
+MIT
+
+## Author Information
+
+Originally developed for verifying the InfluxDB-Telegraf metrics collection stack.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/nfs-client/README.md
+TITLE: NFS Client Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# NFS Client Ansible Role
+
+This role manages NFS client installation and mount configuration for Linux systems, providing a flexible way to manage NFS mounts across different distributions.
+
+## Overview
+
+The role handles:
+- Installation of NFS client packages
+- Configuration of NFS mount points
+- Support for multiple NFS shares
+- Cross-platform compatibility (Debian/RedHat)
+
+## Requirements
+
+### Platform Support
+- Debian/Ubuntu systems (uses apt)
+- RedHat/CentOS systems (uses dnf)
+
+### Prerequisites
+- Systemd-based system
+- Network connectivity to NFS server
+- Proper firewall configuration for NFS ports
+
+## Role Variables
+
+### Main Control Variable
+```yaml
+mount_nfs_share: false    # Master switch to enable/disable NFS mounting
+```
+
+### NFS Mount Configuration
+```yaml
+cluster_nfs_mounts:       # Dictionary of NFS mount configurations
+  mount_name:             # Unique identifier for each mount
+    src: "server:/share"  # NFS server and share path
+    path: "/mount/point"  # Local mount point
+    opts: "mount_options" # Mount options
+    state: "mounted"      # Mount state
+    fstype: "nfs4"       # Filesystem type
+```
+
+### Default Mount Options
+The role includes optimized default mount options:
+```yaml
+opts: "rw,noatime,bg,rsize=131072,wsize=131072,hard,intr,timeo=150,retrans=3"
+```
+
+These options provide:
+- Read-write access
+- Background mounting
+- Optimized read/write sizes
+- Hard mount with interrupts
+- Timeout and retry settings
+
+## Dependencies
+
+This role has no dependencies on other Ansible roles.
+
+## Example Playbook
+
+Basic usage with single mount:
+
+```yaml
+- hosts: servers
+  vars:
+    mount_nfs_share: true
+    cluster_nfs_mounts:
+      data:
+        src: "nfs.example.com:/data"
+        path: "/mnt/data"
+        opts: "rw,noatime,bg"
+        state: "mounted"
+        fstype: "nfs4"
+  roles:
+    - nfs-client
+```
+
+Advanced configuration with multiple mounts:
+
+```yaml
+- hosts: servers
+  vars:
+    mount_nfs_share: true
+    cluster_nfs_mounts:
+      data:
+        src: "nfs.example.com:/data"
+        path: "/mnt/data"
+        opts: "rw,noatime,bg"
+        state: "mounted"
+        fstype: "nfs4"
+      backup:
+        src: "backup.example.com:/backup"
+        path: "/mnt/backup"
+        opts: "ro,noatime,bg"
+        state: "mounted"
+        fstype: "nfs4"
+      temporary:
+        src: "temp.example.com:/temp"
+        path: "/mnt/temp"
+        opts: "rw,noatime"
+        state: "present"
+        fstype: "nfs4"
+  roles:
+    - nfs-client
+```
+
+## Mount States
+
+The role supports several mount states:
+- `mounted`: Ensure mount is present and mounted
+- `present`: Ensure mount is in fstab but not mounted
+- `absent`: Remove mount from fstab
+- `unmounted`: Ensure mount exists in fstab but is not mounted
+
+## File Structure
+
+```
+nfs-client/
+├── defaults/
+│   └── main.yml           # Default variables
+├── tasks/
+│   └── main.yml          # Main tasks
+└── vars/
+    └── main.yml         # Role variables
+```
+
+## Security Considerations
+
+- Use `root_squash` on the NFS server
+- Consider using NFSv4 with Kerberos authentication
+- Implement proper network segmentation
+- Use read-only mounts where possible
+- Configure appropriate file permissions
+
+## Performance Tuning
+
+The default mount options are optimized for performance:
+- `rsize=131072`: Read block size
+- `wsize=131072`: Write block size
+- `noatime`: Disable access time updates
+- `bg`: Background mounting
+- `hard`: Hard mount with retries
+- `timeo=150`: Timeout value
+- `retrans=3`: Number of retries
+
+## Troubleshooting
+
+Common issues and solutions:
+1. Mount fails
+   - Check network connectivity
+   - Verify NFS service on server
+   - Check firewall rules
+2. Performance issues
+   - Adjust rsize/wsize values
+   - Check network quality
+   - Monitor server load
+
+## License
+
+BSD
+
+## Author Information
+
+Originally created by Anthropic. Extended by the community.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+## Notes
+
+- The role automatically handles package installation for different distributions
+- Supports both NFSv3 and NFSv4
+- Can manage multiple mounts simultaneously
+- Provides flexible mount options
+- Includes optimized default settings
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/telegraf/Jacks-README.md
+TITLE: Jacks-README
+FILENAME: Jacks-README.md
+==== CONTENT_START ====
+Role Name
+=========
+
+[Promtail](https://www.influxdata.com/time-series-platform/telegraf/) is an agent which ships the contents of local logs to a private Grafana Loki instance or Grafana Cloud. It is usually deployed to every machine that runs applications which need to be monitored.
+
+This feeds a Loki Log Collector.  Others too, but I am not ready to test others.  It is likely going to dies a slow death as [Grafana Alloy](https://grafana.com/docs/loki/latest/send-data/alloy/) takes over.
+
+This installs a systemd daemon. It can be cleaned up, but that is not very well tested or kept up.
+
+Requirements
+------------
+
+Handled by package install.
+
+Role Variables
+--------------
+
+By default this role installs. There are the state variable is 'present' or 'absent'.  See the playbook for how to use.
+
+There are two varables used to communicate with the server.  Look at the inventory.yml for my configuration.
+
+```
+telegraf_influxdb_url: "monitor.local"
+telegraf_influxdb_token: "its a secret==" 
+telegraf_state: present
+```
+
+
+Dependencies
+------------
+
+none
+
+Example Playbook
+----------------
+
+Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+
+ ```
+- name: Telegraf Removal
+  hosts: localhost
+  connection: local
+
+  vars:
+    telegraf_state: absent
+
+  roles:
+    - telegraf
+ ```
+
+License
+-------
+
+MIT
+
+Author Information
+------------------
+
+Jack Lavender, et al.
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: roles/telegraf/README.md
+TITLE: Telegraf Ansible Role
+FILENAME: README.md
+==== CONTENT_START ====
+# Telegraf Ansible Role
+
+## Overview
+
+This role installs and configures [Telegraf](https://www.influxdata.com/time-series-platform/telegraf/), InfluxData's plugin-driven server agent for collecting and reporting metrics. Telegraf integrates with the monitoring stack by collecting system and application metrics and sending them to InfluxDB for storage and analysis.
+
+## Features
+
+- Installs and configures Telegraf from official InfluxData repositories
+- Manages Telegraf service lifecycle (start/stop/restart)
+- Configures core system metrics collection (CPU, memory, disk, network)
+- Supports optional collection modules for common applications:
+  - Apache web server
+  - MariaDB/MySQL
+  - Memcached
+  - Redis
+- Configures InfluxDB output destinations with authentication
+- Supports flexible ping monitoring for network targets
+- Includes utility scripts for easy deployment and verification
+
+## Requirements
+
+### Platform Support
+
+- Debian/Ubuntu systems (using `apt` package manager)
+- RedHat-based systems (Rocky Linux, RHEL)
+- Systemd-based systems
+
+### Prerequisites
+
+- Systemd-based operating system
+- Network connectivity to InfluxDB endpoint(s)
+- InfluxData package repository access
+
+## Role Variables
+
+### Main Control Variables
+
+```yaml
+# Installation state
+telegraf_state: present           # Use 'absent' to remove Telegraf
+
+# Configuration paths
+telegraf_config: /etc/telegraf/telegraf.conf
+telegraf_default_env: /etc/default/telegraf
+
+# Uninstallation options
+telegraf_delete_config: false     # Remove config files on uninstall
+telegraf_delete_data: false       # Remove data files on uninstall
+telegraf_clean_inputs: false      # Clean out existing input configs
+```
+
+### Metrics Collection Configuration
+
+```yaml
+# Optional metric collectors
+influxdb_apache: false            # Apache metrics
+influxdb_mariadb: false           # MariaDB/MySQL metrics
+influxdb_memcache: false          # Memcached metrics
+influxdb_redis: false             # Redis metrics
+
+# Network monitoring targets
+telegraf_ping_loc:
+  - 1.1.1.1
+  - 8.8.8.8
+  - www.google.com
+```
+
+### InfluxDB Output Configuration
+
+```yaml
+# Output destinations (list of endpoint labels to use)
+telegraf_outputs: ['localhost']
+
+# Detailed configuration for each endpoint
+telgraf2influxdb_configs:
+  localhost:                      # Match label in telegraf_outputs
+    url: "http://127.0.0.1"       # InfluxDB URL
+    token: ""                     # Authentication token
+    bucket: "telegraf"            # Destination bucket
+    org: "myorg"                  # Organization
+    namedrop: ["influxdb_oss"]    # Metrics to exclude
+    insecure_skip_verify: false   # TLS verification option
+```
+
+## Installation
+
+The role uses the official InfluxData package repositories to install Telegraf. It also configures the systemd service and manages necessary configuration files with appropriate permissions.
+
+## Configuration
+
+The role uses a template-based approach to configuration with three main components:
+
+1. **Base Configuration** (`telegraf.conf`): Core agent settings
+2. **Input Plugins** (`telegraf.d/*.conf`): Metric collection configuration
+3. **Output Configuration** (`telegraf.d/output-*.conf`): Where to send metrics
+
+### Global Configuration with group_vars
+
+A recommended approach is to define your InfluxDB output configurations in a shared group_vars file:
+
+```yaml
+# group_vars/all/telegraf2influx-configs.yml
+telgraf2influxdb_configs:
+  localhost:
+    url: "http://127.0.0.1"
+    token: ""
+    bucket: "telegraf"
+    org: "myorg"
+    namedrop: '["influxdb_oss"]'
+    bucket_tag: ""
+    exclude_bucket_tag: ""
+    ping_timeout: "0s"
+    read_idle_timeout: "0s"
+    insecure_skip_verify: false
+  production:
+    url: "http://influxdb.example.com"
+    token: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      31643462363439373438373331633438383836326566633964646336386461626665613038313538
+      6335323137333332636238646564373964326237656330380a363462303330643063386231333364
+      66623366373334333332656163316363373036313133646661303266376661393765386238633165
+      3566323233353862350a643066626538373730616461616534373937623230653532613035656166
+      66386364643332666431383461326462363565386462326661613266383262383531313438326632
+      30616234633164373462303233393733353666663531346532636633353464386632613130626330
+      66666165623165356163323065356664306538393135373463653632626533396265393962313333
+      38366663323439366262363263366632613239643632646561303161373463666563646361333231
+      3937
+    bucket: "telegraf"
+    org: "myorg"
+    namedrop: '["influxdb_oss"]'
+    bucket_tag: ""
+    exclude_bucket_tag: false
+    ping_timeout: "0s"
+    read_idle_timeout: "0s"
+    insecure_skip_verify: false
+```
+
+This approach offers several advantages:
+
+- Centralized configuration of multiple InfluxDB endpoints
+- Secrets management with Ansible Vault
+- Reusable configuration across multiple hosts
+- Easy selection of endpoints per host or group
+
+Then, in your host or group vars, you can selectively enable outputs:
+
+```yaml
+# host_vars/webserver.yml
+telegraf_outputs: ['localhost', 'production']
+```
+
+Each component is generated from templates based on the role variables.
+
+## Usage Examples
+
+### Basic Installation with group_vars
+
+```yaml
+- hosts: servers
+  roles:
+    - role: telegraf
+      vars:
+        # Use endpoints defined in group_vars/all/telegraf2influx-configs.yml
+        telegraf_outputs: ['localhost']
+```
+
+### Using the Utility Scripts
+
+The included utility scripts make deploying and managing Telegraf simpler:
+
+```bash
+# Deploy Telegraf using the management script
+./manage-svc telegraf deploy
+
+# Verify Telegraf is working correctly
+./svc-exec telegraf verify
+
+# Deploy to a specific host
+./manage-svc -h monitoring01 telegraf deploy
+```
+
+### Comprehensive Configuration
+
+```yaml
+- hosts: web_servers
+  roles:
+    - role: telegraf
+      vars:
+        # Enable application monitoring
+        influxdb_apache: true
+        influxdb_mariadb: true
+        
+        # Configure network monitoring
+        telegraf_ping_loc:
+          - db.example.com
+          - api.example.com
+          - 192.168.1.1
+        
+        # Select which endpoints from group_vars to use
+        telegraf_outputs: ['localhost', 'monitor2']
+```
+
+### Removal Configuration
+
+```yaml
+- hosts: servers
+  roles:
+    - role: telegraf
+      vars:
+        telegraf_state: 'absent'
+        telegraf_delete_config: true
+        telegraf_delete_data: true
+```
+
+## Metrics Collection
+
+### Core System Metrics
+
+The role collects these system metrics by default:
+
+- **CPU**: Usage per core and total, including time by state
+- **Memory**: Available, used, cached, and swap metrics
+- **Disk**: Space usage and IO operations
+- **Network**: Interface traffic, errors, and packet counts
+- **System**: Load, uptime, and process metrics
+
+### Optional Application Metrics
+
+Enable specific application monitoring:
+
+**Apache Metrics:**
+
+- Request counts, status codes, and types
+- Worker status and performance metrics
+- Connection statistics
+
+**MariaDB/MySQL Metrics:**
+
+- Query performance and throughput
+- Connection statistics
+- Buffer usage and cache metrics
+- InnoDB metrics
+
+**Memcached Metrics:**
+
+- Cache hit/miss rates
+- Memory usage
+- Connection tracking
+- Evictions and item counts
+
+**Redis Metrics:**
+
+- Command statistics
+- Memory usage and fragmentation
+- Connection tracking
+- Keyspace statistics
+
+## Directory Structure
+
+```
+telegraf/
+├── defaults/
+│   └── main.yml                 # Default variables
+├── files/
+│   ├── apache.conf              # Application configs
+│   ├── mariadb.conf
+│   ├── memcache.conf
+│   ├── redis.conf
+│   └── telegraf.conf            # Base configuration
+├── handlers/
+│   └── main.yml                 # Service handlers
+├── meta/
+│   └── main.yml                 # Role metadata
+├── molecule/                    # Testing configuration
+├── tasks/
+│   ├── main.yml                 # Main tasks
+│   ├── telegrafd-default-setup.yml
+│   ├── telegrafd-inputs-setup.yml
+│   └── telegrafd-outputs-setup.yml
+├── templates/
+│   ├── etc-default-telegraf-localhost.j2
+│   ├── output.j2
+│   └── ping.j2
+└── README.md                    # This file
+```
+
+## Handlers
+
+The role includes the following handlers:
+
+- `Restart telegraf`: Restarts the Telegraf service when configuration changes
+
+## Testing
+
+The role includes Molecule tests for:
+
+- Basic installation
+- Configuration verification
+- Service status checks
+- Metrics collection functionality
+
+## Integration with InfluxDB
+
+### Automatic Token Discovery
+
+When `telegraf_testing` is enabled and the target has InfluxDB installed locally, the role can automatically:
+
+1. Detect if InfluxDB is running on the local system
+2. Query InfluxDB for the system-operator token
+3. Configure Telegraf to use this token for authentication
+
+This feature is particularly useful for testing environments or single-node deployments where both InfluxDB and Telegraf are installed on the same machine.
+
+```yaml
+# Enable automatic token discovery for localhost connection
+telegraf_testing: true
+```
+
+### Multi-Server Configuration
+
+For production environments, the recommended approach is to:
+
+1. Define all possible InfluxDB connections in `group_vars/all/telegraf2influx-configs.yml`
+2. Secure tokens using Ansible Vault encryption
+3. Selectively enable the appropriate connections per host using the `telegraf_outputs` variable
+
+This provides flexibility to send metrics to different InfluxDB instances based on environment, geographic location, or other criteria.
+
+```yaml
+# In host_vars/webserver.yml
+telegraf_outputs: ['localhost', 'monitor2']
+
+# In host_vars/database.yml
+telegraf_outputs: ['monitor2']
+```
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Service fails to start**
+   - Check logs with `journalctl -u telegraf`
+   - Verify configuration with `telegraf --config /etc/telegraf/telegraf.conf --test`
+   - Use the verification script: `./svc-exec telegraf verify`
+
+2. **No metrics being reported**
+   - Verify InfluxDB endpoint is correct and accessible
+   - Check token has correct permissions
+   - Verify network connectivity
+   - Use `./svc-exec telegraf verify1` for connection checks
+
+3. **Missing application metrics**
+   - Verify application module is enabled
+   - Check application is accessible and properly configured
+   - Verify service permissions for monitoring
+
+4. **Need to quickly reinstall the service**
+   - Use the management script: `./manage-svc telegraf remove && ./manage-svc telegraf deploy`
+
+## Utility Scripts
+
+This role can be easily managed using the following utility scripts included in the project:
+
+### manage-svc.sh
+
+This script helps manage service deployment states using dynamically generated Ansible playbooks.
+
+```bash
+Usage: manage-svc [-h HOST] <service> <action>
+
+Options:
+  -h HOST    Target host from inventory (default: uses hosts defined in role)
+
+Services:
+  - loki
+  - alloy
+  - influxdb
+  - telegraf
+
+Actions:
+  - prepare
+  - deploy
+  - install  # Alias for deploy
+  - remove
+```
+
+**Examples:**
+
+```bash
+# Deploy Telegraf to default hosts
+./manage-svc telegraf deploy
+
+# Remove Telegraf from a specific host
+./manage-svc -h monitoring01 telegraf remove
+```
+
+### svc-exec.sh
+
+This script executes specific tasks within a role for targeted operations like verification or configuration.
+
+```bash
+Usage: svc-exec [-K] [-h HOST] <service> [entry]
+
+Options:
+  -K        - Prompt for sudo password (needed for some operations)
+  -h HOST   - Target specific host from inventory
+
+Parameters:
+  service   - The service to manage
+  entry     - The entry point task (default: verify)
+```
+
+**Examples:**
+
+```bash
+# Run verification tasks for Telegraf on default hosts
+./svc-exec telegraf verify
+
+# Run specific verification task on a particular host
+./svc-exec -h monitoring01 telegraf verify1
+```
+
+These scripts provide a convenient way to manage the lifecycle and perform specific operations on the Telegraf role.
+
+## License
+
+MIT
+
+## Author Information
+
+Created and maintained by Jack Lavender.
+
+==== CONTENT_END ====
+==== FILE_START ====
+PATH: verify_output/debian/consolidated_test_report.md
+TITLE: consolidated_test_report
+FILENAME: consolidated_test_report.md
+==== CONTENT_START ====
+=== Monitoring Stack Test Report ===
+Timestamp: 2025-02-13T17:13:35Z
+
+Pre-verify Diagnostics:
+=== Container Diagnostic Report ===
+Timestamp: 2025-02-13T17:13:35Z
+
+Container Health:
+----------------
+cgroups_mounted: false
+  failed_units:
+  - '  UNIT                     LOAD   ACTIVE SUB    DESCRIPTION'
+  - ● sys-kernel-config.mount  loaded failed failed Kernel Configuration File System
+  - ● sys-kernel-debug.mount   loaded failed failed Kernel Debug File System
+  - ● sys-kernel-tracing.mount loaded failed failed Kernel Trace File System
+  - ''
+  - LOAD   = Reflects whether the unit definition was properly loaded.
+  - ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+  - SUB    = The low-level unit activation state, values depend on unit type.
+  - 3 loaded units listed.
+  init_system: degraded
+  process_supervisor: true
+  systemd_status:
+  - ● 0e43932ca706
+  - '    State: degraded'
+  - '    Units: 415 loaded (incl. loaded aliases)'
+  - '     Jobs: 0 queued'
+  - '   Failed: 3 units'
+  - '    Since: Thu 2025-02-13 17:11:19 UTC; 2min 22s ago'
+  - '  systemd: 252.33-1~deb12u1'
+  - '   CGroup: /user.slice/user-1000.slice/user@1000.service/user.slice/libpod-0e43932ca70682d60b74b420976620871be1c0fa003a2a24a1b96c9dceb66935.scope/container'
+  - '           ├─init.scope'
+  - '           │ └─1 /lib/systemd/systemd --system --deserialize=20'
+  - '           ├─system.slice'
+  - '           │ ├─alloy.service'
+  - '           │ │ └─7458 /usr/bin/alloy run --disable-reporting --server.http.listen-addr=0.0.0.0:12345
+      --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+  - '           │ ├─dbus.service'
+  - '           │ │ └─38 /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile
+      --systemd-activation --syslog-only'
+  - '           │ ├─influxdb.service'
+  - '           │ │ └─7548 /usr/bin/influxd'
+  - '           │ ├─loki.service'
+  - '           │ │ └─7341 /usr/bin/loki -config.file /etc/loki/config.yml'
+  - '           │ ├─ssh.service'
+  - '           │ │ └─43 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"'
+  - '           │ ├─systemd-journald.service'
+  - '           │ │ └─23 /lib/systemd/systemd-journald'
+  - '           │ ├─systemd-logind.service'
+  - '           │ │ └─41 /lib/systemd/systemd-logind'
+  - '           │ └─telegraf.service'
+  - '           │   └─7680 /usr/bin/telegraf -config /etc/telegraf/telegraf.conf -config-directory
+      /etc/telegraf/telegraf.d'
+  - '           └─user.slice'
+  - '             └─user-1000.slice'
+  - '               ├─session-2.scope'
+  - '               │ ├─8202 "sshd: jackaltx [priv]"'
+  - '               │ ├─8208 "sshd: jackaltx@pts/0"'
+  - '               │ ├─8209 /bin/sh -c "sudo -H -S -n  -u root /bin/sh -c ''echo BECOME-SUCCESS-fovmpcctiuwayzqlaenhqyfqgzpucvph
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466821.4939964-132708-2556076180978/AnsiballZ_command.py''
+      && sleep 0"'
+  - '               │ ├─8210 sudo -H -S -n -u root /bin/sh -c "echo BECOME-SUCCESS-fovmpcctiuwayzqlaenhqyfqgzpucvph
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466821.4939964-132708-2556076180978/AnsiballZ_command.py"'
+  - '               │ ├─8211 sudo -H -S -n -u root /bin/sh -c "echo BECOME-SUCCESS-fovmpcctiuwayzqlaenhqyfqgzpucvph
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466821.4939964-132708-2556076180978/AnsiballZ_command.py"'
+  - '               │ ├─8212 /bin/sh -c "echo BECOME-SUCCESS-fovmpcctiuwayzqlaenhqyfqgzpucvph
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466821.4939964-132708-2556076180978/AnsiballZ_command.py"'
+  - '               │ ├─8213 /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466821.4939964-132708-2556076180978/AnsiballZ_command.py'
+  - '               │ └─8214 systemctl status'
+  - '               └─user@1000.service'
+  - '                 └─init.scope'
+  - '                   ├─51 /lib/systemd/systemd --user'
+  - '                   └─52 "(sd-pam)"'
+  systemd_version: systemd 252 (252.33-1~deb12u1)
+
+
+Network Health:
+--------------
+interfaces:
+  - '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default
+      qlen 1000'
+  - '    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00'
+  - '    inet 127.0.0.1/8 scope host lo'
+  - '       valid_lft forever preferred_lft forever'
+  - '    inet6 ::1/128 scope host '
+  - '       valid_lft forever preferred_lft forever'
+  - '2: eth0@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP
+      group default qlen 1000'
+  - '    link/ether 1e:8a:89:d0:7d:38 brd ff:ff:ff:ff:ff:ff link-netnsid 0'
+  - '    inet 10.89.0.2/24 brd 10.89.0.255 scope global eth0'
+  - '       valid_lft forever preferred_lft forever'
+  - '    inet6 fe80::1c8a:89ff:fed0:7d38/64 scope link '
+  - '       valid_lft forever preferred_lft forever'
+  listening_ports:
+  - 'Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                           '
+  - 'tcp   LISTEN 0      128          0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=43,fd=3))     '
+  - 'tcp   LISTEN 0      4096               *:12345            *:*    users:(("alloy",pid=7458,fd=3))  '
+  - 'tcp   LISTEN 0      4096               *:9095             *:*    users:(("loki",pid=7341,fd=8))   '
+  - tcp   LISTEN 0      4096               *:8086             *:*    users:(("influxd",pid=7548,fd=8))
+  - 'tcp   LISTEN 0      4096               *:3100             *:*    users:(("loki",pid=7341,fd=7))   '
+  - 'tcp   LISTEN 0      128             [::]:22            [::]:*    users:(("sshd",pid=43,fd=4))     '
+  service_ports:
+  -   - State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+      - LISTEN 0      4096               *:3100            *:*    users:(("loki",pid=7341,fd=7))
+  -   - State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+      - LISTEN 0      4096               *:12345            *:*    users:(("alloy",pid=7458,fd=3))
+  -   - State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+      - LISTEN 0      4096               *:8086            *:*    users:(("influxd",pid=7548,fd=8))
+
+
+Service Health:
+--------------
+alloy:
+      process: ''
+      state: running
+      status: enabled
+  influxdb:
+      process: ''
+      state: running
+      status: enabled
+  loki:
+      process: ''
+      state: running
+      status: enabled
+  telegraf:
+      process: ''
+      state: running
+      status: enabled
+
+
+
+
+============================================================
+===
+=== LOGS Verification Results
+===
+
+=== Monitor Stack Integration Test Results ===
+Timestamp: 2025-02-13T17:13:35Z
+
+Service Versions:
+- Loki: loki, version 3.4.1 (branch: release-3.4.x, revision: 518a7048)
+  build user:       root@4e0be453f555
+  build date:       2025-02-12T20:57:37Z
+  go version:       go1.23.6
+  platform:         linux/amd64
+  tags:             netgo
+- Alloy: alloy, version v1.6.1 (branch: HEAD, revision: 9a30f8ab7)
+  build user:       root@0d674681aced
+  build date:       2025-01-23T16:07:46Z
+  go version:       go1.23.5
+  platform:         linux/amd64
+  tags:             netgo,builtinassets,promtail_journal_enabled
+
+Service Status:
+- Loki: running
+- Alloy: running
+
+Loki Health:
+- Metrics Available: True
+- Log Query Success: True
+
+Recent Loki Logs:
+- -- No entries --
+
+
+Alloy Integration:
+- Connection Status: Established
+- Network Connections:
+- 'tcp   ESTAB 0      0               127.0.0.1:48320          127.0.0.1:3100  users:(("alloy",pid=7458,fd=9))                        '
+
+
+Recent Log Activity:
+    ✓ No errors found in logs for services:
+  - loki
+  - alloy
+
+
+
+============================================================
+===
+=== METRICS Verification Results
+===
+
+=== Monitor Stack Integration Test Results ===
+Timestamp: 2025-02-13T17:13:35Z
+
+Service Versions:
+- InfluxDB: Influx CLI dev (git: a79a2a1b825867421d320428538f76a4c90aa34c) build_date: 2024-04-16T14:34:32Z
+- Telegraf: Telegraf 1.33.2 (git: HEAD@56380011)
+
+Service Status:
+- InfluxDB: running
+- Telegraf: running
+
+InfluxDB Status:
+- Version: Influx CLI dev (git: a79a2a1b825867421d320428538f76a4c90aa34c) build_date: 2024-04-16T14:34:32Z
+- Health Check: pass
+- API Status: True
+- Write Test: True
+- Query Test: True
+- Bucket Configuration:
+    Name: telegraf
+    ID: 399bf7372dbae4aa
+    Retention: infinite
+    Organization ID: 16c6fa258ed69845
+
+Telegraf Integration:
+- Connection Status: Established
+- Network Connections:
+- 'tcp   ESTAB 0      0               127.0.0.1:50916          127.0.0.1:8086  users:(("telegraf",pid=7680,fd=6))                     '
+
+
+Recent Log Activity:
+    ✓ No errors found in logs for services:
+  - influxdb
+  - telegraf
+
+
+Post-verify Diagnostics:
+=== Container Diagnostic Report ===
+Timestamp: 2025-02-13T17:13:35Z
+
+Container Health:
+----------------
+cgroups_mounted: false
+  failed_units:
+  - '  UNIT                     LOAD   ACTIVE SUB    DESCRIPTION'
+  - ● sys-kernel-config.mount  loaded failed failed Kernel Configuration File System
+  - ● sys-kernel-debug.mount   loaded failed failed Kernel Debug File System
+  - ● sys-kernel-tracing.mount loaded failed failed Kernel Trace File System
+  - ''
+  - LOAD   = Reflects whether the unit definition was properly loaded.
+  - ACTIVE = The high-level unit activation state, i.e. generalization of SUB.
+  - SUB    = The low-level unit activation state, values depend on unit type.
+  - 3 loaded units listed.
+  init_system: degraded
+  process_supervisor: true
+  systemd_status:
+  - ● 0e43932ca706
+  - '    State: degraded'
+  - '    Units: 415 loaded (incl. loaded aliases)'
+  - '     Jobs: 0 queued'
+  - '   Failed: 3 units'
+  - '    Since: Thu 2025-02-13 17:11:19 UTC; 3min 36s ago'
+  - '  systemd: 252.33-1~deb12u1'
+  - '   CGroup: /user.slice/user-1000.slice/user@1000.service/user.slice/libpod-0e43932ca70682d60b74b420976620871be1c0fa003a2a24a1b96c9dceb66935.scope/container'
+  - '           ├─init.scope'
+  - '           │ └─1 /lib/systemd/systemd --system --deserialize=20'
+  - '           ├─system.slice'
+  - '           │ ├─alloy.service'
+  - '           │ │ └─7458 /usr/bin/alloy run --disable-reporting --server.http.listen-addr=0.0.0.0:12345
+      --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy'
+  - '           │ ├─dbus.service'
+  - '           │ │ └─38 /usr/bin/dbus-daemon --system --address=systemd: --nofork --nopidfile
+      --systemd-activation --syslog-only'
+  - '           │ ├─influxdb.service'
+  - '           │ │ └─7548 /usr/bin/influxd'
+  - '           │ ├─loki.service'
+  - '           │ │ └─7341 /usr/bin/loki -config.file /etc/loki/config.yml'
+  - '           │ ├─ssh.service'
+  - '           │ │ └─43 "sshd: /usr/sbin/sshd -D [listener] 0 of 10-100 startups"'
+  - '           │ ├─systemd-journald.service'
+  - '           │ │ └─23 /lib/systemd/systemd-journald'
+  - '           │ ├─systemd-logind.service'
+  - '           │ │ └─41 /lib/systemd/systemd-logind'
+  - '           │ └─telegraf.service'
+  - '           │   └─7680 /usr/bin/telegraf -config /etc/telegraf/telegraf.conf -config-directory
+      /etc/telegraf/telegraf.d'
+  - '           └─user.slice'
+  - '             └─user-1000.slice'
+  - '               ├─session-2.scope'
+  - '               │ ├─12918 "sshd: jackaltx [priv]"'
+  - '               │ ├─12924 "sshd: jackaltx@pts/0"'
+  - '               │ ├─12925 /bin/sh -c "sudo -H -S -n  -u root /bin/sh -c ''echo BECOME-SUCCESS-sxifwpkrugnjhprpejrthhelrfuwhuiu
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466894.656633-138535-192640351501363/AnsiballZ_command.py''
+      && sleep 0"'
+  - '               │ ├─12926 sudo -H -S -n -u root /bin/sh -c "echo BECOME-SUCCESS-sxifwpkrugnjhprpejrthhelrfuwhuiu
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466894.656633-138535-192640351501363/AnsiballZ_command.py"'
+  - '               │ ├─12927 sudo -H -S -n -u root /bin/sh -c "echo BECOME-SUCCESS-sxifwpkrugnjhprpejrthhelrfuwhuiu
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466894.656633-138535-192640351501363/AnsiballZ_command.py"'
+  - '               │ ├─12928 /bin/sh -c "echo BECOME-SUCCESS-sxifwpkrugnjhprpejrthhelrfuwhuiu
+      ; /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466894.656633-138535-192640351501363/AnsiballZ_command.py"'
+  - '               │ ├─12929 /usr/bin/python3 /home/jackaltx/.ansible/tmp/ansible-tmp-1739466894.656633-138535-192640351501363/AnsiballZ_command.py'
+  - '               │ └─12930 systemctl status'
+  - '               └─user@1000.service'
+  - '                 └─init.scope'
+  - '                   ├─51 /lib/systemd/systemd --user'
+  - '                   └─52 "(sd-pam)"'
+  systemd_version: systemd 252 (252.33-1~deb12u1)
+
+
+Network Health:
+--------------
+interfaces:
+  - '1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default
+      qlen 1000'
+  - '    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00'
+  - '    inet 127.0.0.1/8 scope host lo'
+  - '       valid_lft forever preferred_lft forever'
+  - '    inet6 ::1/128 scope host '
+  - '       valid_lft forever preferred_lft forever'
+  - '2: eth0@if4: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP
+      group default qlen 1000'
+  - '    link/ether 1e:8a:89:d0:7d:38 brd ff:ff:ff:ff:ff:ff link-netnsid 0'
+  - '    inet 10.89.0.2/24 brd 10.89.0.255 scope global eth0'
+  - '       valid_lft forever preferred_lft forever'
+  - '    inet6 fe80::1c8a:89ff:fed0:7d38/64 scope link '
+  - '       valid_lft forever preferred_lft forever'
+  listening_ports:
+  - 'Netid State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                           '
+  - 'tcp   LISTEN 0      128          0.0.0.0:22         0.0.0.0:*    users:(("sshd",pid=43,fd=3))     '
+  - 'tcp   LISTEN 0      4096               *:12345            *:*    users:(("alloy",pid=7458,fd=3))  '
+  - 'tcp   LISTEN 0      4096               *:9095             *:*    users:(("loki",pid=7341,fd=8))   '
+  - tcp   LISTEN 0      4096               *:8086             *:*    users:(("influxd",pid=7548,fd=8))
+  - 'tcp   LISTEN 0      4096               *:3100             *:*    users:(("loki",pid=7341,fd=7))   '
+  - 'tcp   LISTEN 0      128             [::]:22            [::]:*    users:(("sshd",pid=43,fd=4))     '
+  service_ports:
+  -   - State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+      - LISTEN 0      4096               *:3100            *:*    users:(("loki",pid=7341,fd=7))
+  -   - State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess
+      - LISTEN 0      4096               *:12345            *:*    users:(("alloy",pid=7458,fd=3))
+  -   - State  Recv-Q Send-Q Local Address:Port Peer Address:PortProcess
+      - LISTEN 0      4096               *:8086            *:*    users:(("influxd",pid=7548,fd=8))
+
+
+Service Health:
+--------------
+alloy:
+      process: ''
+      state: running
+      status: enabled
+  influxdb:
+      process: ''
+      state: running
+      status: enabled
+  loki:
+      process: ''
+      state: running
+      status: enabled
+  telegraf:
+      process: ''
+      state: running
+      status: enabled
+
+
+Overall Status: PASSED
+
+==== CONTENT_END ====
