@@ -5,6 +5,9 @@ solti-ensemble/
 solti-monitoring.wiki/
 solti/
 
+# working to remove
+testing-containers
+
 # Standard ignores
 *.pyc
 __pycache__/
