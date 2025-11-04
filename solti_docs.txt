@@ -2153,7 +2153,7 @@ FILENAME: SecurityReport-new-ispconfig.md
 
 ## Executive Summary
 
-This report presents findings from a comprehensive assessment of the ISPConfig server at ispconfig.a0a0.org. The server is configured as a multi-purpose web hosting environment with a complete stack of services including web, email, database, and FTP capabilities. The assessment indicates this is a recently deployed production environment with proper security controls in place, though some enhancements are recommended to achieve full compliance with NIST 800-53 and CMMC requirements.
+This report presents findings from a comprehensive assessment of the ISPConfig server at ispconfig.example.com. The server is configured as a multi-purpose web hosting environment with a complete stack of services including web, email, database, and FTP capabilities. The assessment indicates this is a recently deployed production environment with proper security controls in place, though some enhancements are recommended to achieve full compliance with NIST 800-53 and CMMC requirements.
 
 ## 1. System Identification and Authorization
 
