@@ -62,6 +62,16 @@ From the SOLTI documentation:
 - Moving from GIST to Mattermost for notifications
 - Elasticsearch for test results storage
 
-## Don't Write Code Unless Asked
-Per user preference: Focus on Ansible architecture, patterns, and integration advice.
-Only write code when explicitly requested.
+## Claude Code Integration
+
+Claude Code uses molecule for convergence testing - expect code implementation during development cycles. Ask before making significant architectural changes or adding new dependencies.
+
+**IMPORTANT:** Create git checkpoint commits before every test run. Keep all checkpoints during development for audit trail, squash before PR:
+```bash
+# During development - commit freely
+git add -A && git commit -m "checkpoint: description"
+# Run tests, repeat
+
+# Before PR - squash checkpoints
+git rebase -i HEAD~N  # N = number of checkpoint commits
+```
