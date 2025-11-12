@@ -1,0 +1,196 @@
+---
+# ============================================================================
+# ANNOTATED EXAMPLE: influxdb3 role main.yml
+# ============================================================================
+# This is the reference implementation for SOLTI state management pattern.
+# Original: solti-containers/roles/influxdb3/tasks/main.yml
+# ============================================================================
+
+#
+# influxdb3 role - supports prepare, present, and absent states
+# States:
+#   prepare: First-time setup of directories and system configuration
+#   present: Deploy and configure InfluxDB3 containers
+#   absent: Remove containers (optionally remove data)
+#
+
+# ANNOTATION: State validation happens first
+# - Validates the state parameter
+# - Provides clear error message
+# - Fails fast if invalid state
+- name: Validate state parameter
+  ansible.builtin.fail:
+    msg: "influxdb3_state must be one of: prepare, present, absent. Current value: {{ influxdb3_state }}"
+  when: influxdb3_state not in ['prepare', 'present', 'absent']
+
+# ANNOTATION: Optional - Test sudo capability if needed
+- name: Test become capability
+  ansible.builtin.command: whoami
+  register: become_test
+  changed_when: false
+
+# =======================================================================
+# PREPARATION (one-time setup)
+# =======================================================================
+# ANNOTATION: Visual separator makes state blocks obvious
+# - Use exactly this format: # === TEXT ===
+# - Stands out when scanning code
+# - Clear section boundaries
+
+# ANNOTATION: Block name clearly describes the state
+# - Matches the state value: "Prepare" for prepare state
+# - Descriptive enough to understand purpose
+# - When condition makes it conditional
+- name: Prepare InfluxDB3 (one-time setup)
+  when: influxdb3_state == 'prepare'
+  block:
+    # ANNOTATION: Idempotency check
+    # - Prevents re-running prepare
+    # - Checks for evidence of previous preparation
+    - name: Check if already prepared
+      ansible.builtin.stat:
+        path: "{{ influxdb3_data_dir }}"
+      register: data_dir_check
+
+    # ANNOTATION: Explicit failure with clear message
+    # - Better than silent skip
+    # - User knows why it stopped
+    - name: Fail if already prepared
+      ansible.builtin.fail:
+        msg: "InfluxDB3 appears to be already prepared. Directory {{ influxdb3_data_dir }} exists."
+      when: data_dir_check.stat.exists
+
+    # ANNOTATION: Dotted separator for sub-sections
+    # - Not as prominent as === separator
+    # - Groups related tasks visually
+    # ............................................................
+
+    # ANNOTATION: Include base role tasks
+    # - Reuses common preparation logic
+    # - Keeps main.yml clean
+    - name: Base prepare
+      ansible.builtin.include_tasks:
+        file: ../_base/tasks/prepare.yml
+
+# =======================================================================
+# DEPLOYMENT
+# =======================================================================
+# ANNOTATION: Second state block
+# - Same visual pattern as prepare
+# - Clear separation from previous state
+
+- name: Install InfluxDB3
+  when: influxdb3_state == 'present'
+  block:
+    # ANNOTATION: Verify prerequisites
+    # - Ensures prepare was run first
+    # - Fails with clear message if not
+    # - changed_when: false because it's just a check
+    - name: Verify required directories exist
+      ansible.builtin.stat:
+        path: "{{ influxdb3_data_dir }}/{{ service_properties.config_dir }}"
+      register: config_dir_check
+      failed_when: not config_dir_check.stat.exists
+      changed_when: false
+
+    # ANNOTATION: Include sub-tasks
+    # - Breaks complex deployment into manageable pieces
+    # - Each include has single responsibility
+    - name: Include prerequisites tasks
+      ansible.builtin.include_tasks: prerequisites.yml
+
+    # ANNOTATION: Conditional includes
+    # - Only run when feature is enabled
+    - name: Include TLS tasks
+      ansible.builtin.include_tasks: tls.yml
+      when: influxdb3_enable_traefik | bool
+
+    # ANNOTATION: Include from base role
+    # - Reuses common network setup
+    - name: Ensure network setup
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/networks.yml"
+
+    # ANNOTATION: Deployment tasks continue
+    - name: Include container tasks
+      ansible.builtin.include_tasks: quadlet_rootless.yml
+
+    - name: Bootstrap admin token
+      ansible.builtin.include_tasks: bootstrap_token.yml
+
+    # ANNOTATION: Verification as last step
+    # - Confirms deployment worked
+    # - Catches issues before exiting
+    - name: Verify deployment
+      ansible.builtin.include_tasks: verify.yml
+
+# =======================================================================
+# CLEANUP
+# =======================================================================
+# ANNOTATION: Third state block
+# - Same visual pattern
+# - Handles removal cleanly
+
+- name: Remove InfluxDB3
+  when: influxdb3_state == 'absent'
+  block:
+    # ............................................................
+
+    # ANNOTATION: Cleanup via base role
+    # - Reuses common cleanup logic
+    # - Passes state to cleanup tasks
+    - name: Include cleanup tasks
+      ansible.builtin.include_tasks:
+        file: "../_base/tasks/cleanup.yml"
+      vars:
+        service_state: absent
+
+# ============================================================================
+# KEY TAKEAWAYS
+# ============================================================================
+#
+# 1. STATE VALIDATION FIRST
+#    - Always validate state parameter
+#    - Fail fast with clear messages
+#
+# 2. VISUAL STRUCTURE
+#    - === separators for major state blocks
+#    - ... separators for sub-sections
+#    - Consistent formatting
+#
+# 3. BLOCK NAMES
+#    - Descriptive: "Prepare ServiceName"
+#    - Match state: prepare → "Prepare", present → "Install/Deploy"
+#    - Clear intent
+#
+# 4. WHEN CONDITIONS
+#    - One when per state block
+#    - Explicit state checking
+#    - No hidden logic
+#
+# 5. IDEMPOTENCY
+#    - prepare: Check if already done
+#    - present: Verify prerequisites
+#    - absent: Ignore errors if already gone
+#
+# 6. INCLUDE TASKS
+#    - Break complex operations into files
+#    - Single responsibility per file
+#    - Main.yml shows the flow
+#
+# 7. VERIFICATION
+#    - Always include verify.yml
+#    - Run at end of present state
+#    - Catch deployment issues early
+#
+# ============================================================================
+# VISUAL SCANNING
+# ============================================================================
+# When you open this file, you can immediately see:
+# - Three states (prepare, present, absent)
+# - What each state does
+# - The flow within each state
+# - No mental parsing required
+#
+# This is the goal: VISUAL CLARITY
+# ============================================================================
