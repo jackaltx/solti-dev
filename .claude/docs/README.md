@@ -8,24 +8,30 @@ This directory contains analysis, summaries, and documentation generated during 
 .claude/docs/
 ├── README.md           # This file
 └── workflow/           # GitHub workflow standardization
-    ├── alignment-analysis.md        # Gap analysis across collections
-    ├── deployment-summary.md        # Deployment status and next steps
+    ├── STATUS.md                    # **START HERE** - Current state & gaps
+    ├── alignment-analysis.md        # Original gap analysis (pre-implementation)
+    ├── deployment-summary.md        # Deployment details and next steps
     └── implementation-summary.md    # Original implementation notes
 ```
 
 ## Workflow Documentation
 
-### alignment-analysis.md
-Comprehensive analysis comparing workflow implementations across:
+### STATUS.md ⭐ START HERE
+**Current state** of workflow standardization:
+- ✅ What's been implemented
+- ⚠️ Known issues & limitations
+- 🎯 Remaining recommendations
+- 📋 Next actions
+
+**Use this** to understand what's done and what's pending.
+
+### alignment-analysis.md (Historical)
+Original gap analysis **before** implementation:
 - solti-containers (new standard)
 - solti-monitoring (existing, needed alignment)
 - solti-platforms (from scratch)
 
-**Key sections**:
-- Gap analysis
-- Alignment recommendations
-- Decision points
-- Specific file changes needed
+**Note**: Pre-implementation analysis. See STATUS.md for current state.
 
 ### deployment-summary.md
 Post-deployment summary after pushing all test branches:
@@ -35,7 +41,7 @@ Post-deployment summary after pushing all test branches:
 - Next steps
 - Known issues
 
-### implementation-summary.md
+### implementation-summary.md (Historical)
 Original notes from initial workflow standardization in solti-containers:
 - Phase-by-phase implementation
 - Decisions made
