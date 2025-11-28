@@ -66,6 +66,23 @@ From the SOLTI documentation:
 - **T**esting: Verification and validation
 - **I**ntegration: Component interconnection
 
+### Secure Logging Pattern
+
+**All collections use `MOLECULE_SECURE_LOGGING` for credential debugging:**
+
+- Default: `true` (credentials/secrets hidden with `no_log`)
+- Debug mode: `MOLECULE_SECURE_LOGGING=false` (shows credential details in logs)
+- Set in molecule.yml inventory:
+  ```yaml
+  secure_logging: "{{ lookup('env', 'MOLECULE_SECURE_LOGGING', default='true') | bool }}"
+  ```
+- Used in tasks with sensitive data:
+  ```yaml
+  no_log: "{{ secure_logging | default(true) }}"
+  ```
+
+**Propagate this pattern to all new roles and collections.**
+
 ### Current Development Focus
 
 - Standardizing reporting flow across collections

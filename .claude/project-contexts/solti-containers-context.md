@@ -1,6 +1,6 @@
 # SOLTI-CONTAINERS Project Context
 
-**Last Updated**: 2025-11-10
+**Last Updated**: 2025-11-28
 **Status**: Production-ready with active development
 **Location**: `./solti-containers/`
 
@@ -821,6 +821,88 @@ Brief description of what this service does.
 Common issues and solutions.
 ```
 
+### Check Upgrade Pattern
+
+**Generic container image update checker** - centralized in `_base` role:
+
+```bash
+./svc-exec.sh -h <host> -i inventory/<host>.yml <service> check_upgrade
+```
+
+**How it works**:
+1. Auto-discovers all containers in pod via `service_properties.root`
+2. Gets current image ID from running container
+3. Pulls latest image from registry
+4. Compares image IDs to detect updates
+5. Reports per-container and summary status
+
+**Key features**:
+- No shell access required in containers (uses podman on host)
+- Works with single or multi-container pods
+- Skips infra/pause containers automatically
+- Sets `container_checks` fact for programmatic use
+
+**Implementation**:
+- `_base/tasks/check_upgrade.yml` - Main orchestrator
+- `_base/tasks/check_upgrade_container.yml` - Per-container checker
+- Service role: Simple wrapper that includes _base implementation
+
+See [docs/Check-Upgrade-Pattern.md](../solti-containers/docs/Check-Upgrade-Pattern.md) for details.
+
+---
+
+### Lifecycle Management Patterns
+
+#### DELETE_DATA Environment Variable
+
+Controls data persistence during service removal:
+
+```bash
+# Default: preserve data directories
+./manage-svc.sh <service> remove
+
+# Remove data directories completely
+DELETE_DATA=true ./manage-svc.sh <service> remove
+```
+
+Implemented via `service_properties.delete_data` in all roles. See [docs/Delete-Data-Refactoring.md](../solti-containers/docs/Delete-Data-Refactoring.md).
+
+#### DELETE_IMAGES Environment Variable
+
+Controls container image removal during service removal:
+
+```bash
+# Default: keep container images
+./manage-svc.sh <service> remove
+
+# Remove container images (forces fresh pull on next deploy)
+DELETE_IMAGES=true ./manage-svc.sh <service> remove
+
+# Complete removal (both data and images)
+DELETE_DATA=true DELETE_IMAGES=true ./manage-svc.sh <service> remove
+```
+
+**Use cases**:
+- Fresh install testing
+- Forcing image upgrades
+- CI/CD pipeline testing
+- Troubleshooting image corruption
+
+Supports both single-image and multi-image services (redis, elasticsearch, mattermost).
+
+#### NOPASSWD Auto-Detection
+
+Scripts automatically detect if sudo requires password:
+
+```bash
+# No need to specify -K if NOPASSWD configured
+./manage-svc.sh <service> deploy
+
+# Scripts test with 'sudo -n true' and only use -K when needed
+```
+
+---
+
 ### Common Patterns
 
 #### Volume Mounts with Permissions
@@ -921,6 +1003,38 @@ Each service includes `tasks/verify.yml` for manual testing:
 3. Test basic API functionality
 4. Verify data persistence
 5. Check integration points (network, volumes)
+
+### Lifecycle Test Documentation
+
+**Pattern**: Executable test documentation in `roles/<service>/docs/LIFECYCLE-TESTS.md`
+
+**Purpose**: Document complete deployment workflows that can be executed by AI agents or humans
+
+**Structure**:
+- **Test 1: Fresh Install** - Complete removal and reinstall with current images
+- **Test 2: Upgrade Test** - Check for updates and upgrade workflow
+- **Test 3: Integration Tests** - Service-specific integration (e.g., Traefik)
+
+**Key Features**:
+- Step-by-step commands with expected outcomes
+- Verification commands for manual checking
+- Expected duration for each test
+- Troubleshooting common issues
+- CI/CD integration examples
+
+**Example**: [roles/grafana/docs/LIFECYCLE-TESTS.md](../solti-containers/roles/grafana/docs/LIFECYCLE-TESTS.md)
+
+**Current Coverage**:
+- ✅ Grafana - Complete lifecycle test documentation
+- 🚧 Gitea - Full Redeploy section in README
+- 🚧 InfluxDB3 - Full Redeploy section in README
+- 🚧 Mattermost - Full Redeploy section in README
+
+**Benefits**:
+- Reproducible testing procedures
+- AI agent can execute tests autonomously
+- Documents expected behavior
+- Foundation for automated CI/CD testing
 
 ### Planned: Molecule Integration
 
@@ -1085,6 +1199,27 @@ Development sessions create state files:
 
 ### Recent Development
 
+**CI Workflow Simplification** (2025-11-28):
+- Archived full molecule CI workflow for future use
+- Current CI: lint-only (yamllint, ansible-lint, markdownlint)
+- Branch-conditional strictness (strict on main, warnings on test)
+- Incremental lint remediation workflow established
+- ~92% noise reduction via configuration tuning
+
+**Lifecycle Management Features** (2025-11-20):
+- DELETE_IMAGES support added to all services
+- Multi-image support (redis, elasticsearch, mattermost)
+- NOPASSWD auto-detection in scripts
+- Comprehensive lifecycle test documentation pattern
+- Full Redeploy docs for gitea, grafana, influxdb3
+
+**Check Upgrade Pattern** (2025-11-20):
+- Generic container image update checker
+- Centralized in _base role
+- Auto-discovers all containers in pod
+- Works without shell access in containers
+- Rolled out to mattermost, redis (template for all services)
+
 **InfluxDB3 Implementation** (2025-11-09):
 - Two-phase auth flow implemented
 - Volume mount strategy refined (`:z,U` patterns)
@@ -1095,6 +1230,7 @@ Development sessions create state files:
 - TLS centralized via Traefik (not per-service)
 - Data preservation via sudo + ownership handling
 - SELinux integration via `z` flag on all mounts
+- Lint remediation: incremental fixes on test branch, zero errors on main
 
 ---
 
@@ -1204,8 +1340,11 @@ mkdir -p roles/yourservice/{tasks,templates,defaults,meta}
 
 ## Changelog
 
+**2025-11-28**: CI workflow simplified to lint-only, incremental remediation workflow
+**2025-11-20**: DELETE_IMAGES feature, NOPASSWD auto-detection, lifecycle test docs
+**2025-11-20**: Check upgrade pattern centralized in _base role
 **2025-11-10**: Initial context document created
-**2025-11-09**: InfluxDB3 implementation completed
+**2025-11-09**: InfluxDB3 implementation completed, DELETE_DATA refactoring
 **2025-11**: Traefik SSL integration standardized
 **2025-10**: Core architecture stabilized (3 pillars)
 **2025-09**: First production services (Redis, Elasticsearch, HashiVault)
