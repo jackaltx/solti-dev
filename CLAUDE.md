@@ -2,8 +2,74 @@
 
 ## Purpose
 
-This is the root coordination repository for the Solti Ansible collections suite.
-Individual collections are maintained in separate repositories but integrated here.
+Root coordination repository for the Solti Ansible collections suite. Individual collections are maintained in separate repositories but integrated here.
+
+## Orchestrator (mylab)
+
+The `mylab/` directory contains the orchestrator - tightly-bound code and data that automates deployments across Solti collections. Long-term goal: extract into cleansed reference implementation for public release.
+
+**Orchestrator Components:**
+
+- [manage-svc.sh](mylab/manage-svc.sh) - Service lifecycle (deploy/remove/prepare)
+- [svc-exec.sh](mylab/svc-exec.sh) - Task execution (verify/configure)
+- [deploy-fleur-workflow.sh](mylab/deploy-fleur-workflow.sh) - Automated workflow with validation
+- [inventory.yml](mylab/inventory.yml) - Host registry and configuration
+- `mylab/data/` - Service tokens, credentials, configs (site-specific)
+- `mylab/playbooks/` - Deployment playbooks (site-specific)
+
+## Reference Machines
+
+### monitor11.a0a0.org
+
+**Type:** Proxmox VM (local infrastructure)
+**Purpose:** Production metrics/log collector (solti-monitoring reference, partial deployment)
+**Stack:** InfluxDB, Loki, Telegraf, Alloy
+
+**Playbooks:**
+
+- [svc-monitor11-metrics.yml](mylab/playbooks/svc-monitor11-metrics.yml) - InfluxDB + Telegraf
+- [svc-monitor11-logs.yml](mylab/playbooks/svc-monitor11-logs.yml) - Loki + Alloy
+
+**Configuration:**
+
+- Telegraf outputs to localhost InfluxDB
+- Loki with S3 backend (jacknas2.a0a0.org:8010, bucket: loki11)
+- InfluxDB with S3 backend (bucket: influx11, 30d retention)
+- WireGuard endpoint for remote collectors (10.10.0.11)
+
+### fleur.lavnet.net
+
+**Type:** Linode VPS (public cloud)
+**Purpose:** Full production deployment (complete solti-monitoring reference)
+**Stack:** Alloy, Telegraf, ISPConfig, Gitea, Fail2ban, WireGuard client
+
+**Playbooks:**
+
+- [fleur-monitor.yml](mylab/playbooks/fleur-monitor.yml) - Legacy monitoring
+- [fleur-alloy.yml](mylab/playbooks/fleur-alloy.yml) - Current Alloy config
+
+**Configuration:**
+
+- Monitors: Apache, ISPConfig, Fail2ban, Gitea, Mail (journald), Bind9 (journald), WireGuard (journald)
+- Ships logs to monitor11 via WireGuard (10.10.0.11)
+- Ships metrics to monitor11wg
+- Alloy args: `--disable-reporting --server.http.listen-addr=127.0.0.1:12345`
+
+## Current Goals
+
+### Short-term
+
+1. ✅ Document reference machines
+2. **Site-specific isolation** - mylab is only repo with site-specific info; use example.com in public collections
+3. **Alloy config validation** (ref: ~/.claude/plans/bubbly-swimming-tower.md):
+   - Test config with `alloy fmt` and `alloy validate` before overwriting
+   - Explore live config reload
+
+### Long-term
+
+- Extract orchestrator for public release
+- Define standardized Solti collection pattern
+- Periodic cleanup of site-specific leakage
 
 ## Collection Overview
 

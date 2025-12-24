@@ -6,6 +6,10 @@ solti-platforms/
 solti-monitoring.wiki/
 solti-docs/
 
+# This is my solti-orchestrator
+# It is managed by a private repo
+mylab/
+
 # working to remove
 testing-containers
 
