@@ -4,6 +4,30 @@
 
 Root coordination repository for the Solti Ansible collections suite. Individual collections are maintained in separate repositories but integrated here.
 
+## Repository Organization
+
+This is the **root of a larger system** with distinct organizational elements:
+
+- **mylab/** - Orchestrator (run installations from here)
+  - Site-specific deployment scripts and configuration
+  - Inventory, playbooks, credentials, service tokens
+
+- **solti-*** - Ansible collections (subdirectories)
+  - solti-monitoring, solti-containers, solti-ensemble, solti-docs
+  - Each collection has its own CLAUDE.md for collection-specific context
+
+- **Reports/** - Analysis outputs
+  - Generated reports from evaluation and testing
+  - Sprint results, efficiency analysis, validation reports
+
+- **docs/** (if exists) - Process documentation
+  - System-wide procedures and methodologies
+  - Architectural documentation
+
+### Claude's Role
+
+**Look across the entire system** - not just individual collections. Each element (orchestrator, collections, reports) has agents supporting development and running. Generate reports in Reports/, reference processes in docs/, and coordinate changes across collections.
+
 ## Orchestrator (mylab)
 
 The `mylab/` directory contains the orchestrator - tightly-bound code and data that automates deployments across Solti collections. Long-term goal: extract into cleansed reference implementation for public release.
