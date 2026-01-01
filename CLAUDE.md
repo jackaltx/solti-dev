@@ -85,15 +85,249 @@ The `mylab/` directory contains the orchestrator - tightly-bound code and data t
 
 1. ✅ Document reference machines
 2. **Site-specific isolation** - mylab is only repo with site-specific info; use example.com in public collections
-3. **Alloy config validation** (ref: ~/.claude/plans/bubbly-swimming-tower.md):
-   - Test config with `alloy fmt` and `alloy validate` before overwriting
+3. **Alloy config validation**:
+   - ALWAYS test before deploy (see workflow below)
    - Explore live config reload
+
+### Alloy Test/Deploy Workflow
+
+**IMPORTANT**: Always test Alloy config changes before deploying!
+
+```bash
+# 1. TEST - Validates config and writes to /tmp (does NOT restart service)
+cd mylab
+ansible-playbook --become-password-file ~/.secrets/lavender.pass \
+  ./playbooks/fleur/91-fleur-alloy-test.yml
+
+# 2. DEPLOY - Writes to /etc/alloy/config.alloy and restarts service
+cd mylab
+ansible-playbook --become-password-file ~/.secrets/lavender.pass \
+  ./playbooks/fleur/22-fleur-alloy.yml
+```
+
+**Test playbook behavior**:
+- Renders config to `/tmp/alloy-test-config-YYYYMMDDTHHMMSS.alloy` on fleur
+- Runs `alloy fmt` and `alloy validate` to check syntax
+- Does NOT restart alloy service
+- Safe to run multiple times
 
 ### Long-term
 
 - Extract orchestrator for public release
 - Define standardized Solti collection pattern
 - Periodic cleanup of site-specific leakage
+
+## Grafana Dashboard Development Workflow
+
+### Overview
+
+Local Grafana instances (running in Podman) can be managed programmatically via the HTTP API. This workflow enables debugging and fixing dashboard panels without manual clicking in the UI.
+
+### Environment Setup
+
+**Local Grafana Access:**
+
+- **Container**: `grafana-infra` or `grafana-svc` on localhost:3000
+- **Public URL**: <https://grafana.a0a0.org:8080> (Traefik proxy)
+- **Admin Credentials**: `~/.secrets/grafana.admin.pass`
+- **API Auth**: `-u admin:$(cat ~/.secrets/grafana.admin.pass)`
+
+**Loki Access:**
+
+- **monitor11**: <http://monitor11.a0a0.org:3100>
+- **API endpoint**: `/loki/api/v1/query` (instant), `/loki/api/v1/query_range` (time series)
+
+### Dashboard Debug/Fix Workflow
+
+#### Step 1: Identify the Problem
+
+- User reports "no data" or incorrect data in specific panels
+- Note panel names/titles
+
+#### Step 2: Fetch Dashboard JSON
+
+```bash
+# Get dashboard by UID
+curl -s -u admin:$(cat ~/.secrets/grafana.admin.pass) \
+  http://localhost:3000/api/dashboards/uid/fail2ban > /tmp/dashboard.json
+
+# List all panels
+python3 << 'EOF'
+import json
+with open('/tmp/dashboard.json', 'r') as f:
+    d = json.load(f)
+panels = d['dashboard']['panels']
+for p in panels:
+    print(f"Panel {p['id']}: {p.get('title', 'No title')}")
+    print(f"  Query: {p['targets'][0].get('expr', 'EMPTY')[:80]}")
+EOF
+```
+
+#### Step 3: Test Queries Directly Against Loki
+
+```python
+# Test a Loki query BEFORE deploying to dashboard
+import subprocess, json, time
+
+now_ns = int(time.time() * 1e9)
+start_ns = now_ns - (24 * 3600 * int(1e9))
+
+query = 'sum by(jail) (count_over_time({service_type="fail2ban"} [24h]))'
+cmd = f'curl -s -G "http://monitor11.a0a0.org:3100/loki/api/v1/query" \
+  --data-urlencode \'query={query}\' \
+  --data-urlencode time={now_ns}'
+
+result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+data = json.loads(result.stdout)
+
+if data['status'] == 'success' and data['data']['result']:
+    print(f"✅ Query works! {len(data['data']['result'])} results")
+    for res in data['data']['result']:
+        print(f"  {res['metric']}: {res['value'][1]}")
+else:
+    print(f"❌ Query failed: {data.get('error', 'unknown')}")
+```
+
+#### Step 4: Fix Dashboard JSON
+
+```python
+import json
+
+# Load dashboard
+with open('/tmp/dashboard.json', 'r') as f:
+    d = json.load(f)
+dashboard = d['dashboard']
+
+# Fix specific panel
+for panel in dashboard['panels']:
+    if panel['id'] == 10:  # Panel ID
+        # Update query
+        panel['targets'][0]['expr'] = 'your_tested_query_here'
+        panel['targets'][0]['queryType'] = 'instant'  # or 'range'
+        print(f"✅ Updated panel {panel['id']}")
+
+# Save
+with open('/tmp/dashboard-fixed.json', 'w') as f:
+    json.dump(dashboard, f, indent=2)
+```
+
+#### Step 5: Deploy to Grafana
+
+```python
+import json, subprocess
+
+with open('/tmp/dashboard-fixed.json', 'r') as f:
+    dashboard = json.load(f)
+
+payload = {
+    "dashboard": dashboard,
+    "message": "Fix panel X: description of change",
+    "overwrite": True
+}
+
+with open('/tmp/payload.json', 'w') as f:
+    json.dump(payload, f)
+
+cmd = 'curl -s -X POST -H "Content-Type: application/json" \
+  -u admin:$(cat ~/.secrets/grafana.admin.pass) \
+  -d @/tmp/payload.json \
+  http://localhost:3000/api/dashboards/db'
+
+result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+response = json.loads(result.stdout)
+print(f"Status: {response.get('status')}")
+print(f"Version: {response.get('version')}")
+```
+
+#### Step 6: Verify in Browser
+
+- Hard refresh: Ctrl+Shift+R (or Cmd+Shift+R)
+- Check that data appears correctly
+
+### Common Loki Query Patterns
+
+**Parsing journald logs:**
+
+```logql
+# Extract fields from log message using regexp
+{service_type="fail2ban"}
+| regexp `\[(?P<jail>[^\]]+)\]\s+(?P<action>Ban|Unban)\s+(?P<banned_ip>\d+\.\d+\.\d+\.\d+)`
+| action="Ban"
+```
+
+**Instant vs Range queries:**
+
+- **Instant** (`/api/v1/query`): Single value per metric, good for tables
+- **Range** (`/api/v1/query_range`): Time series, good for graphs
+
+**Aggregations:**
+
+```logql
+# Count by label over time window
+sum by(jail) (count_over_time({service_type="fail2ban"} [24h]))
+
+# Top N results
+topk(20, sum by(banned_ip) (count_over_time(...)))
+```
+
+### Fail2ban Journald Migration (2026-01-01)
+
+**Important**: Fail2ban logs migrated from direct file monitoring to journald.
+
+**OLD source (deprecated):**
+
+- Labels: `{job="fail2ban", action_type="Ban", jail="sshd"}`
+- Pre-parsed by log shipper
+- Last data: 2026-01-01 04:18 UTC
+
+**NEW source (current):**
+
+- Labels: `{service_type="fail2ban", hostname="fleur.lavnet.net"}`
+- Log format: `[jail] Ban/Unban IP`
+- Requires regex parsing in queries
+- Started: 2026-01-01 04:41 UTC
+
+**Query migration example:**
+
+```logql
+# OLD (don't use)
+{job="fail2ban", action_type="Ban", jail="sshd"}
+
+# NEW (current)
+{service_type="fail2ban"}
+| regexp `\[(?P<jail>[^\]]+)\]\s+(?P<action>Ban|Unban)\s+(?P<banned_ip>\d+\.\d+\.\d+\.\d+)`
+| action="Ban"
+| jail="sshd"
+```
+
+### Useful Grafana API Endpoints
+
+```bash
+# List all dashboards
+curl -s -u admin:$(cat ~/.secrets/grafana.admin.pass) \
+  http://localhost:3000/api/search?type=dash-db | python3 -m json.tool
+
+# List datasources
+curl -s -u admin:$(cat ~/.secrets/grafana.admin.pass) \
+  http://localhost:3000/api/datasources | python3 -m json.tool
+
+# Get dashboard by UID
+curl -s -u admin:$(cat ~/.secrets/grafana.admin.pass) \
+  http://localhost:3000/api/dashboards/uid/DASHBOARD_UID
+
+# Get organization info
+curl -s -u admin:$(cat ~/.secrets/grafana.admin.pass) \
+  http://localhost:3000/api/org
+```
+
+### Troubleshooting Tips
+
+1. **Check label availability**: `curl http://monitor11.a0a0.org:3100/loki/api/v1/labels`
+2. **Check label values**: `curl http://monitor11.a0a0.org:3100/loki/api/v1/label/LABELNAME/values`
+3. **Test basic query**: Start with `{service_type="fail2ban"}` before adding filters
+4. **Compare old vs new data**: Use `count_over_time()` to see which source has data
+5. **Dashboard variables**: Use `$hostname`, `$jail` in queries to enable filtering
+6. **Query type matters**: Tables need `instant`, graphs need `range`
 
 ## Collection Overview
 
