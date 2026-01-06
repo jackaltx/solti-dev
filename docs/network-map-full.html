@@ -63,15 +63,16 @@
 
   <div id="info">
     <h3>SOLTI Network Map</h3>
-    <p><strong>Sprint 1.1:</strong> Basic Graph Test</p>
-    <p>3 test nodes (entry + 2 collections)</p>
+    <p><strong>Sprint 1.2:</strong> Complete Network</p>
+    <p>15 nodes (entry, hubs, collections, orchestrator, workflows, docs)</p>
     <p><em>Drag to pan • Scroll to zoom</em></p>
   </div>
 
   <script>
-    // Test data: 3 nodes with different types
+    // Complete network: 15 nodes + edges
     const networkData = {
       nodes: [
+        // Entry point (1)
         {
           data: {
             id: 'solti-docs-readme',
@@ -80,6 +81,34 @@
             description: 'Main entry point for SOLTI documentation'
           }
         },
+
+        // Hubs (3)
+        {
+          data: {
+            id: 'root-readme',
+            label: 'Root\nREADME.md',
+            type: 'hub',
+            description: 'Multi-collection navigation hub'
+          }
+        },
+        {
+          data: {
+            id: 'root-claude',
+            label: 'Root\nCLAUDE.md',
+            type: 'hub',
+            description: 'Master coordination and troubleshooting guide'
+          }
+        },
+        {
+          data: {
+            id: 'docs-readme',
+            label: 'docs/\nREADME.md',
+            type: 'hub',
+            description: 'Development workspace architecture map'
+          }
+        },
+
+        // Collections (4)
         {
           data: {
             id: 'solti-monitoring',
@@ -95,23 +124,104 @@
             type: 'collection',
             description: 'Container services: Redis, Elasticsearch, Mattermost'
           }
-        }
-      ],
-      edges: [
+        },
         {
           data: {
-            id: 'e1',
-            source: 'solti-docs-readme',
-            target: 'solti-monitoring'
+            id: 'solti-ensemble',
+            label: 'solti-\nensemble',
+            type: 'collection',
+            description: 'Infrastructure: MariaDB, security, WireGuard'
           }
         },
         {
           data: {
-            id: 'e2',
-            source: 'solti-docs-readme',
-            target: 'solti-containers'
+            id: 'solti-platforms',
+            label: 'solti-\nplatforms',
+            type: 'collection',
+            description: 'Platform creation: Proxmox VM templates'
+          }
+        },
+
+        // Orchestrator (1)
+        {
+          data: {
+            id: 'mylab-claude',
+            label: 'mylab\norchestrator',
+            type: 'orchestrator',
+            description: 'Site-specific orchestration layer'
+          }
+        },
+
+        // Workflows (2)
+        {
+          data: {
+            id: 'fleur-workflow',
+            label: 'fleur\nworkflow',
+            type: 'workflow',
+            description: 'Bare VM → ISPConfig → monitored endpoint (10 steps)'
+          }
+        },
+        {
+          data: {
+            id: 'monitor11-workflow',
+            label: 'monitor11\nworkflow',
+            type: 'workflow',
+            description: 'Proxmox VM clone → monitoring server setup'
+          }
+        },
+
+        // Documentation (3)
+        {
+          data: {
+            id: 'solti-md',
+            label: 'solti.md',
+            type: 'doc',
+            description: 'SOLTI philosophy and development journey'
+          }
+        },
+        {
+          data: {
+            id: 'development-md',
+            label: 'Development.md',
+            type: 'doc',
+            description: 'Current development status and progress'
+          }
+        },
+        {
+          data: {
+            id: 'testing-concept',
+            label: 'Testing-\nConcept.md',
+            type: 'doc',
+            description: 'Testing methodology and philosophy'
           }
         }
+      ],
+
+      edges: [
+        // From solti-docs/README.md
+        { data: { id: 'e1', source: 'solti-docs-readme', target: 'root-readme' } },
+        { data: { id: 'e2', source: 'solti-docs-readme', target: 'solti-md' } },
+        { data: { id: 'e3', source: 'solti-docs-readme', target: 'development-md' } },
+        { data: { id: 'e4', source: 'solti-docs-readme', target: 'testing-concept' } },
+
+        // From Root README.md
+        { data: { id: 'e5', source: 'root-readme', target: 'solti-monitoring' } },
+        { data: { id: 'e6', source: 'root-readme', target: 'solti-containers' } },
+        { data: { id: 'e7', source: 'root-readme', target: 'solti-ensemble' } },
+        { data: { id: 'e8', source: 'root-readme', target: 'solti-platforms' } },
+        { data: { id: 'e9', source: 'root-readme', target: 'root-claude' } },
+        { data: { id: 'e10', source: 'root-readme', target: 'docs-readme' } },
+
+        // From Root CLAUDE.md
+        { data: { id: 'e11', source: 'root-claude', target: 'mylab-claude' } },
+        { data: { id: 'e12', source: 'root-claude', target: 'fleur-workflow' } },
+        { data: { id: 'e13', source: 'root-claude', target: 'monitor11-workflow' } },
+
+        // From docs/README.md
+        { data: { id: 'e14', source: 'docs-readme', target: 'solti-monitoring' } },
+        { data: { id: 'e15', source: 'docs-readme', target: 'solti-containers' } },
+        { data: { id: 'e16', source: 'docs-readme', target: 'solti-ensemble' } },
+        { data: { id: 'e17', source: 'docs-readme', target: 'solti-platforms' } }
       ]
     };
 
@@ -159,6 +269,54 @@
             'background-color': '#95E1D3',
             'width': 100,
             'height': 50
+          }
+        },
+
+        // Hub (teal hexagon)
+        {
+          selector: 'node[type="hub"]',
+          style: {
+            'shape': 'hexagon',
+            'background-color': '#4ECDC4',
+            'width': 70,
+            'height': 70
+          }
+        },
+
+        // Orchestrator (pink diamond)
+        {
+          selector: 'node[type="orchestrator"]',
+          style: {
+            'shape': 'diamond',
+            'background-color': '#F38181',
+            'width': 80,
+            'height': 80
+          }
+        },
+
+        // Workflow (purple ellipse, dashed border)
+        {
+          selector: 'node[type="workflow"]',
+          style: {
+            'shape': 'ellipse',
+            'background-color': '#AA96DA',
+            'width': 100,
+            'height': 60,
+            'border-width': 3,
+            'border-style': 'dashed',
+            'border-color': '#7B68EE'
+          }
+        },
+
+        // Doc (yellow rectangle)
+        {
+          selector: 'node[type="doc"]',
+          style: {
+            'shape': 'rectangle',
+            'background-color': '#FFFFD2',
+            'width': 80,
+            'height': 35,
+            'font-size': 11
           }
         },
 
